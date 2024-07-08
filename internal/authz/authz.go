@@ -4,11 +4,81 @@ import (
 	"context"
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
-	"os"
-	"time"
-
 	. "github.com/openfga/go-sdk/client"
+	"os"
 )
+
+type AuthStore struct {
+	client           *OpenFgaClient
+	storeID, modelID string
+}
+
+// NewAuthStore loads store .. or if not create it ..
+func NewAuthStore(apiURL string) AuthStore {
+	fgaClient, err := NewSdkClient(&ClientConfiguration{
+		ApiUrl: apiURL,
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	// Create store if needed ..
+	gsresp, gserr := fgaClient.GetStore(context.Background()).Execute()
+	if gserr != nil {
+		panic(gserr)
+	}
+
+	id := ""
+	ptrid, ok := gsresp.GetIdOk()
+	if !ok {
+		resp, cerr := fgaClient.CreateStore(context.Background()).Body(
+			ClientCreateStoreRequest{
+				Name: "Demo",
+			}).Execute()
+
+		if cerr != nil {
+			panic(cerr)
+		}
+		id = resp.GetId()
+	} else {
+		fmt.Println("Existing STORE!!! ==> ", gsresp.GetName())
+		id = *ptrid
+	}
+
+	return AuthStore{
+		client:  fgaClient,
+		storeID: id,
+	}
+}
+
+func (a AuthStore) InitDemo(demoModelPath string) error {
+	// CReate new Store .. store it for later ..
+	return nil
+}
+
+func (a AuthStore) DemoDirectAccess(demoModelPath string) error {
+	// CReate a new model ...
+	// Store the model pointer ...
+
+	return nil
+}
+
+func (a AuthStore) DemoUserGroups(demoModelPath string) error {
+	return nil
+}
+
+func (a AuthStore) DemoRolesPermissions(demoModelPath string) error {
+	return nil
+}
+
+func (a AuthStore) DemoUserParentChild(demoModelPath string) error {
+	return nil
+}
+
+func (a AuthStore) DemoConditions(demoModelPath string) error {
+	return nil
+}
 
 func CheckPermission() {
 
@@ -36,63 +106,29 @@ func CheckPermission() {
 
 	if err != nil {
 		// .. Handle error
+		panic(err)
 	}
 
-	// DEBUG ..
-	//conf := fgaClient.GetConfig()
-	// DEBUG
-	//spew.Dump(conf)
-
-	// Example of creating Store .. it does not check existing store name ...
-	//resp, err := fgaClient.CreateStore(context.Background()).Body(ClientCreateStoreRequest{Name: "FGA Demo"}).Execute()
-	//if err != nil {
-	//	// .. Handle error
-	//}
-	//
-	//spew.Dump(resp.Name)
-
-	// Write tuple ..
-	body := ClientWriteRequest{
-		Writes: []ClientTupleKey{
-			{
-				User:     "user:mleow",
-				Relation: "reader",
-				Object:   "document:secretz",
-			},
-		},
-	}
-
-	data, err := fgaClient.Write(context.Background()).
-		Body(body).
-		//Options(options).
-		Execute()
-
-	if err != nil {
-		// .. Handle error check validation
-		//errors.Is(err, &openfga.ValidationErrorMessageResponse)
-		fmt.Println(err.Error())
-		//spew.Dump(err)
-		//panic(err)
-		return
-	}
-
-	// Small delay ..
-	time.Sleep(time.Second)
-	fmt.Println("I am slow ...")
-
-	data, err = fgaClient.Write(context.Background()).Body(ClientWriteRequest{
-		Deletes: []ClientTupleKeyWithoutCondition{
-			{"user:mleow", "reader", "document:secrety"},
-		},
+	// Check via query if it is allowed againsrt the docId
+	resp, err := fgaClient.Check(context.Background()).Body(ClientCheckRequest{
+		User:     "user:",
+		Relation: "reader",
+		Object:   "document:",
 	}).Execute()
-
-	spew.Dump(data.Writes)
-	spew.Dump(data.Deletes)
-
+	if err != nil {
+		panic(err)
+	}
+	b, ok := resp.GetAllowedOk()
+	if !ok {
+		fmt.Println("UNKNOWN OK .. check!! ====> ")
+	} else {
+		spew.Dump(b)
+	}
 }
 
 // Add Permissions ...
-func AddSecretDocAccess(username string) {
+
+func AddDocAccess(username, docId string) {
 	apiURL := os.Getenv("FGA_API_URL")
 	fgaClient, err := NewSdkClient(&ClientConfiguration{
 		ApiUrl:  apiURL,
@@ -103,13 +139,16 @@ func AddSecretDocAccess(username string) {
 		panic(err)
 	}
 
-	// Example: user:mleow
+	// Example:
+	//	user:mleow
+	//	document:secret-topsecrety
+
 	data, err := fgaClient.Write(context.Background()).Body(ClientWriteRequest{
 		Writes: []ClientTupleKey{
 			{
 				User:     "user:" + username,
 				Relation: "reader",
-				Object:   "document:secret-topsecrety",
+				Object:   "document:" + docId,
 			},
 		},
 	}).Execute()
@@ -121,7 +160,8 @@ func AddSecretDocAccess(username string) {
 }
 
 // Remove Permissions ...
-func RemoveSecretDocAccess(username string) {
+
+func RemoveDocAccess(username, docId string) {
 	apiURL := os.Getenv("FGA_API_URL")
 	fgaClient, err := NewSdkClient(&ClientConfiguration{
 		ApiUrl:  apiURL,
@@ -132,13 +172,16 @@ func RemoveSecretDocAccess(username string) {
 		panic(err)
 	}
 
-	// Example: user:mleow
+	// Example:
+	//	user:mleow
+	//	document:secret-topsecrety
+
 	data, err := fgaClient.Write(context.Background()).Body(ClientWriteRequest{
 		Deletes: []ClientTupleKeyWithoutCondition{
 			{
 				"user:" + username,
 				"reader",
-				"document:secret-topsecrety",
+				"document:" + docId,
 			},
 		},
 	}).Execute()
@@ -146,9 +189,37 @@ func RemoveSecretDocAccess(username string) {
 		panic(err)
 	}
 
-	spew.Dump(data.Writes)
+	// DEBUG
 	spew.Dump(data.Deletes)
 
 }
 
-// List down the
+// List down the Doc related to user
+
+func ListDocAccess(username string) {
+	apiURL := os.Getenv("FGA_API_URL")
+	fgaClient, err := NewSdkClient(&ClientConfiguration{
+		ApiUrl: apiURL,
+	})
+	if err != nil {
+		panic(err)
+	}
+	data, err := fgaClient.ListObjects(context.Background()).Body(ClientListObjectsRequest{
+		User:     "user:" + username,
+		Relation: "reader",
+		Type:     "document",
+	}).Execute()
+
+	if err != nil {
+		panic(err)
+	}
+
+	s, ok := data.GetObjectsOk()
+	if !ok {
+		fmt.Println("UNKNOWN .. NOT SET!!!! =========>")
+		spew.Dump(data)
+	} else {
+		spew.Dump(s)
+	}
+
+}
