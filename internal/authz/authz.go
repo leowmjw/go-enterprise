@@ -2,8 +2,10 @@ package authz
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
+	openfga "github.com/openfga/go-sdk"
 	. "github.com/openfga/go-sdk/client"
 	"os"
 )
@@ -23,15 +25,15 @@ func NewAuthStore(apiURL string) AuthStore {
 		panic(err)
 	}
 
+	id := ""
 	// Create store if needed ..
-	gsresp, gserr := fgaClient.GetStore(context.Background()).Execute()
+	gsresp, gserr := fgaClient.ListStores(context.Background()).Execute()
 	if gserr != nil {
+		//spew.Dump(gserr)
+		fmt.Println("ERR: ", gserr.Error())
 		panic(gserr)
 	}
-
-	id := ""
-	ptrid, ok := gsresp.GetIdOk()
-	if !ok {
+	if len(gsresp.GetStores()) == 0 {
 		resp, cerr := fgaClient.CreateStore(context.Background()).Body(
 			ClientCreateStoreRequest{
 				Name: "Demo",
@@ -41,9 +43,17 @@ func NewAuthStore(apiURL string) AuthStore {
 			panic(cerr)
 		}
 		id = resp.GetId()
+
 	} else {
-		fmt.Println("Existing STORE!!! ==> ", gsresp.GetName())
-		id = *ptrid
+		store := gsresp.GetStores()[0]
+		id = store.GetId()
+		fmt.Println("Existing STORE!!! ==> ", store.GetName())
+	}
+
+	// Update the client with the StoreID; no need storeID in struct i think ..
+	serr := fgaClient.SetStoreId(id)
+	if serr != nil {
+		panic(serr)
 	}
 
 	return AuthStore{
@@ -54,13 +64,149 @@ func NewAuthStore(apiURL string) AuthStore {
 
 func (a AuthStore) InitDemo(demoModelPath string) error {
 	// CReate new Store .. store it for later ..
+	// dEBUzg
+	//spew.Dump(a.storeID)
+
+	// This gets all the models
+	gamresp, gerr := a.client.ReadAuthorizationModels(context.Background()).Execute()
+	if gerr != nil {
+		panic(gerr)
+	}
+	for i, m := range gamresp.GetAuthorizationModels() {
+		fmt.Println("ID: ", i, " MODEL: ", m.GetId())
+
+	}
+	// For future .. when need to cintune ..
+	//fmt.Println("TOKEN: ", gamresp.GetContinuationToken())
+
+	// Probably need to set the client options ..
+	//opts := ClientReadAuthorizationModelOptions{
+	//	AuthorizationModelId: nil,
+	//}
+	// without above; it pulls the latest only ..
+
+	//a.client.ReadAuthorizationModel(context.Background()).
+	//	Body(ClientReadAuthorizationModelRequest{}).
+	//	Options(opts).
+	//	Execute()
+
 	return nil
 }
 
-func (a AuthStore) DemoDirectAccess(demoModelPath string) error {
-	// CReate a new model ...
-	// Store the model pointer ...
+func (a AuthStore) DemoPrepareModel(demoModelPath string) error {
+	// CReate a new model ... get its ID ..
+	b, err := os.ReadFile(demoModelPath)
+	if err != nil {
+		return err
+	}
+	var body ClientWriteAuthorizationModelRequest
+	uerr := json.Unmarshal(b, &body)
+	if uerr != nil {
+		return uerr
+	}
+	data, werr := a.client.WriteAuthorizationModel(context.Background()).Body(body).Execute()
 
+	if werr != nil {
+		return werr
+	}
+	// Set the client to the laets one ..
+	serr := a.client.SetAuthorizationModelId(data.GetAuthorizationModelId())
+	if serr != nil {
+		return serr
+	}
+
+	return nil
+
+}
+
+func (a AuthStore) checkAccess(modelID string) (*ClientCheckResponse, error) {
+	fmt.Println("Model ID: ", modelID)
+
+	opts := ClientCheckOptions{
+		AuthorizationModelId: openfga.PtrString(modelID),
+	}
+	data, cerr := a.client.Check(context.Background()).Body(ClientCheckRequest{
+		User:     "user:mleow",
+		Relation: "viewer",
+		Object:   "document:public/welcome.doc",
+		//Context:          nil,
+		//ContextualTuples: []ClientTupleKey{}, // Like dynamic stuff .. MFA clicked ..
+	}).Options(opts).Execute()
+
+	if cerr != nil {
+		return nil, cerr
+	}
+	return data, nil
+}
+
+func (a AuthStore) DemoDirectAccess() error {
+	// Store the model pointer ...
+	err := a.DemoPrepareModel("openfga/models/direct-access.json")
+	if err != nil {
+		return err
+	}
+	modelID, gerr := a.client.GetAuthorizationModelId()
+	if gerr != nil {
+		return gerr
+	}
+	data, err := a.checkAccess(modelID)
+
+	allowed, ok := data.GetAllowedOk()
+	if ok {
+		if !*allowed {
+			fmt.Println("As expected .. not allowed .. yet!!")
+		} else {
+			return fmt.Errorf("DemoDirectAccess: UNEXPECTED ALLOWED!!! ")
+		}
+	} else {
+		fmt.Println("Expected no OK")
+	}
+
+	wopts := ClientWriteOptions{
+		AuthorizationModelId: openfga.PtrString(modelID),
+	}
+	wresp, werr := a.client.WriteTuples(context.Background()).
+		Body(ClientWriteTuplesBody{
+			{
+				User:     "user:mleow",
+				Relation: "viewer",
+				Object:   "document:public/welcome.doc",
+			},
+			{
+				User:     "user:bob",
+				Relation: "editor",
+				Object:   "document:public/welcome.doc",
+			},
+		}).
+		Options(wopts).Execute()
+	if werr != nil {
+		return werr
+	}
+	// DEBUG
+	fmt.Println("No of writes", len(wresp.Writes))
+	fmt.Println("No of deletes", len(wresp.Deletes))
+	//spew.Dump(wresp.Writes)
+
+	// Now chevk again is fine ..
+	data, err = a.checkAccess(modelID)
+
+	allowed, ok = data.GetAllowedOk()
+	if ok {
+		if *allowed {
+			fmt.Println("As expected .. now is ok!!")
+		} else {
+			return fmt.Errorf("DemoDirectAccess: UNEXPECTED NOT ALLOWED!!! ")
+		}
+	} else {
+		return fmt.Errorf("Expected OK; but NOT!!")
+	}
+
+	return nil
+}
+
+func (a AuthStore) DemoAccess() error {
+
+	// Now with contextual data ..
 	return nil
 }
 

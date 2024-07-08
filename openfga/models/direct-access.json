@@ -1,0 +1,1 @@
+{"schema_version":"1.1","type_definitions":[{"type":"user"},{"metadata":{"relations":{"editor":{"directly_related_user_types":[{"type":"user"}]},"viewer":{"directly_related_user_types":[{"type":"user"}]}}},"relations":{"editor":{"this":{}},"viewer":{"this":{}}},"type":"document"}]}
