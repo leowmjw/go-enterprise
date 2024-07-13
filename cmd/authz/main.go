@@ -15,34 +15,42 @@ func main() {
 }
 
 func Run() {
+	// Create a new ServeMux
+	mux := http.NewServeMux()
 
-	// Create the Server
-	server := &http.Server{
-		Addr: ":8888",
-	}
-
+	// Define a handler function
 	h1 := func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello World")
-
 	}
-	http.HandleFunc("/", h1)
 
+	// Attach handler function to the ServeMux
+	mux.HandleFunc("/", h1)
+
+	// Create the Server using the new ServeMux
+	server := &http.Server{
+		Addr:    ":8888",
+		Handler: mux,
+	}
+
+	// Prepare for handling signals
 	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt, os.Kill, syscall.SIGTERM)
+	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
-	// Running the HTTP server
+	// Running the HTTP server in a go routine
 	go func() {
-		server.ListenAndServe()
+		if err := server.ListenAndServe(); err != nil {
+			fmt.Println("Server error:", err)
+		}
 	}()
 
+	// Wait for interrupt signal
 	interruptSignal := <-interrupt
-	switch interruptSignal {
-	case os.Kill:
-		fmt.Println("Got SIGKILL...")
-	case os.Interrupt:
-		fmt.Println("Got SIGINT...")
-	case syscall.SIGTERM:
-		fmt.Println("Got SIGTERM...")
+	fmt.Printf("Received %s, shutting down.\n", interruptSignal)
+
+	// Shutdown the server gracefully
+	if err := server.Shutdown(context.Background()); err != nil {
+		fmt.Println("Error shutting down:", err)
+	} else {
+		fmt.Println("Server shutdown gracefully.")
 	}
-	server.Shutdown(context.Background())
 }
