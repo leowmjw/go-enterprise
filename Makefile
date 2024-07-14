@@ -12,6 +12,7 @@ demo:
 start-server:
 	@echo "Start server hosting app to check ..."
 	@cd cmd/authz && go run *.go
+	# @cd cmd/kilcron && go run main.go
 
 start-openfga:	
 	@openfga run

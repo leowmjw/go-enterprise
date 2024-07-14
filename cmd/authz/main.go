@@ -1,6 +1,7 @@
 package main
 
 import (
+	"app/internal/authz"
 	"context"
 	"fmt"
 	"net/http"
@@ -8,6 +9,19 @@ import (
 	"os/signal"
 	"syscall"
 )
+
+var as authz.AuthStore
+
+func init() {
+	apiURL := os.Getenv("FGA_API_URL")
+	as = authz.NewAuthStore(apiURL)
+	err := as.InitDemo("")
+	if err != nil {
+		fmt.Println("Error initializing auth store. ERR:", err.Error())
+	} else {
+		fmt.Println("SUCCESS!! Init Authz Server!!")
+	}
+}
 
 func main() {
 	fmt.Println("Demo Server ...")
@@ -19,12 +33,17 @@ func Run() {
 	mux := http.NewServeMux()
 
 	// Define a handler function
-	h1 := func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello World")
+	defaultHandler := func(w http.ResponseWriter, r *http.Request) {
+		//fmt.Fprintf(w, "Hello World")
+		http.NotFound(w, r)
+		return
 	}
 
 	// Attach handler function to the ServeMux
-	mux.HandleFunc("/", h1)
+	mux.HandleFunc("/", defaultHandler)
+	mux.HandleFunc("/demo/", demoHandler)
+	mux.HandleFunc("/demo/login/", loginHandler)
+	mux.HandleFunc("/demo/logout/", logoutHandler)
 
 	// Create the Server using the new ServeMux
 	server := &http.Server{
@@ -53,4 +72,6 @@ func Run() {
 	} else {
 		fmt.Println("Server shutdown gracefully.")
 	}
+
+	// Shutdown Temporal Worker ...
 }
