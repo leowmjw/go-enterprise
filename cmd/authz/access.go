@@ -25,5 +25,39 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	//fmt.Println("ID:", c.Value)
 	fmt.Fprintf(w, "Goodbye Cruel World!! See ya %s", c.Value)
+
+	// Document Lists
+
+	// Pending Approvers ..
+	return
+}
+
+func documentHandler(w http.ResponseWriter, r *http.Request) {
+
+	// WorkflowID: <username>-approver
+	// WorkflowID: <docID>
+
+	// Check if action is happening ... after done redirect back ..
+	q := r.URL.Query()
+	if q.Has("action") {
+
+		switch q.Get("action") {
+		case "approve":
+			// Redirect back it itself?
+
+		case "reject":
+			// Redirect back to top level??
+
+		case "view":
+			// If no document .. BadRequest
+			// Check if got viewer access or not ..
+			// if yes, show secrets .. else naughty! can for access
+		default:
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+	}
+	// Show Workflow current status under care??
+	fmt.Fprintf(w, "Nothing to see here .. docs")
 	return
 }
