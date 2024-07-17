@@ -1,11 +1,25 @@
 package main
 
-func StartWorker() {
-	// Register Workflow
+import (
+	"app/internal/authz"
+	"go.temporal.io/sdk/client"
+	"go.temporal.io/sdk/worker"
+)
 
-	// Register Activities
+// NewDemoWorker ...
+func NewDemoWorker(c client.Client) worker.Worker {
+	// Create the Temporal client
+	//c, err := client.NewLazyClient(client.Options{})
+	//if err != nil {
+	//	log.Fatalln("Unable to create Temporal client", err)
+	//}
+	//defer c.Close()
 
-	// Listen to TaskQueue ...
+	// Create a worker that listens on the task queue and hosts the workflow and activity functions
+	w := worker.New(c, TQ, worker.Options{})
 
-	// Return the stop signal ...
+	w.RegisterWorkflow(authz.SimpleWorkflow)
+	w.RegisterActivity(authz.GreetActivity)
+
+	return w
 }

@@ -40,6 +40,7 @@ func init() {
 
 	// For each doc; owner will get the write access ..
 	// All these within the workflow ..
+
 }
 
 func NewDocument(id, owner, content string) Document {

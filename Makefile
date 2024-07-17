@@ -18,7 +18,8 @@ start-openfga:
 	@openfga run
 
 start-temporal:
-	@temporal server start-dev
+	@echo "Start Temporal Server"
+	@temporal server start-dev --http-port 9090 --ui-port 3001 --metrics-port 9091 --log-level info
 
 test-direct-access:
 	@echo "Demo Direct Access .."
