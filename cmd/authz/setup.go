@@ -10,11 +10,12 @@ import (
 )
 
 const TQ = "example-task-queue"
+const orgID = "GopherLab"
 
 func SetupSimpleWorkflow(c client.Client) {
 	// Start Workflow for Org GopherLab
 	// With below combos ..
-	orgID := "GopherLab"
+	orgID := "CrabLab"
 	docsInit := []authz.Document{
 		authz.Document{
 			ID:      "public/welcome.doc",
@@ -40,8 +41,8 @@ func SetupSimpleWorkflow(c client.Client) {
 	we, err := c.ExecuteWorkflow(context.Background(), workflowOptions,
 		authz.SimpleWorkflow,
 		authz.WFDemoInput{
-			name,
-			docsInit,
+			Name: name,
+			Docs: docsInit,
 		})
 	if err != nil {
 		log.Fatalln("Unable to execute workflow", err)
@@ -59,7 +60,7 @@ func SetupSimpleWorkflow(c client.Client) {
 	}
 
 	fmt.Println("Workflow result:", result)
-
+	return
 }
 
 // SetupActionWorkflow demos an action happening .. and signalling ..
@@ -79,6 +80,7 @@ func SetupActionWorkflow(c client.Client) {
 			Content: "Secretz",
 		},
 	}
+	usersInit := []string{"bob", "mleow"}
 	// DEBUG
 	//spew.Dump(docsInit)
 
@@ -88,12 +90,11 @@ func SetupActionWorkflow(c client.Client) {
 		ID:        orgID,
 		TaskQueue: TQ,
 	}
-	name := "World"
 	we, err := c.ExecuteWorkflow(context.Background(), workflowOptions,
 		authz.SimpleWorkflow,
 		authz.WFDemoInput{
-			name,
-			docsInit,
+			Users: usersInit,
+			Docs:  docsInit,
 		})
 	if err != nil {
 		log.Fatalln("Unable to execute workflow", err)
@@ -102,6 +103,7 @@ func SetupActionWorkflow(c client.Client) {
 
 	// Delay ,.. then terminate ...
 	time.Sleep(time.Minute * 2)
+	fmt.Println("AFTER 2 mins!!! =====>> ****")
 	serr := c.SignalWorkflow(context.Background(), orgID, we.GetRunID(), "terminateSignal", authz.Actions{
 		GetAdminElevated: true,
 	})
@@ -114,5 +116,5 @@ func SetupActionWorkflow(c client.Client) {
 	if serr != nil {
 		log.Fatalln("Unable to signal workflow", serr)
 	}
-
+	return
 }

@@ -94,7 +94,7 @@ func (a AuthStore) InitDemo(demoModelPath string) error {
 }
 
 func (a AuthStore) DemoPrepareModel(demoModelPath string) error {
-	// CReate a new model ... get its ID ..
+	// Read the special JSON model .. it will crap out if not proper JSON!!
 	b, err := os.ReadFile(demoModelPath)
 	if err != nil {
 		return err
@@ -110,11 +110,14 @@ func (a AuthStore) DemoPrepareModel(demoModelPath string) error {
 		return werr
 	}
 	// Set the client to the laets one ..
-	serr := a.client.SetAuthorizationModelId(data.GetAuthorizationModelId())
+	modelID := data.GetAuthorizationModelId()
+	serr := a.client.SetAuthorizationModelId(modelID)
 	if serr != nil {
 		return serr
 	}
-
+	// Store the modelID if needed ...
+	a.modelID = modelID
+	// All OK ..
 	return nil
 
 }

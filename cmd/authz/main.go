@@ -17,40 +17,38 @@ func main() {
 	Run()
 }
 
-func Run() {
-	// AuthzDemo ..
-	//apiURL := os.Getenv("FGA_API_URL")
-	//demo := authz.NewAuthzDemo(apiURL, "")
-	// Init Temporal + OpenFGA Client
-	// Start the workflow or continue ..
+var c client.Client
 
+func Run() {
+	// HTTP Server Setup ..
 	// Create the Server using the new ServeMux
 	server := &http.Server{
 		Addr:    ":8888",
 		Handler: NewRouter(),
 	}
-
 	// Running the HTTP server in a go routine
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
 			fmt.Println("Server error:", err)
 		}
 	}()
+	// END HTTP Server ================>
 
 	// Create the Temporal client
-	c, err := client.NewLazyClient(client.Options{})
+	var err error
+	c, err = client.NewLazyClient(client.Options{})
 	if err != nil {
 		spew.Dump(err)
 		log.Fatalln("Unable to create Temporal client", err)
 	}
 	defer c.Close()
 
-	// Setup the Demo Scenario ..
+	// Setup the Sanity Test Scenario ..
 	go SetupSimpleWorkflow(c)
+	// Actual Demo Scenario ..
+	//go SetupActionWorkflow(c)
 
 	// Running the Temporal Worker in a go routine ..
-	// passing in the clients ..
-	//var w worker.Worker
 	go SetupTemporalWorker(c)
 
 	// Prepare for handling signals
@@ -67,8 +65,4 @@ func Run() {
 	} else {
 		fmt.Println("Server shutdown gracefully.")
 	}
-
-	//// Shutdown Temporal Worker ...
-	//fmt.Println("Stopping Temporal Worker...")
-	//w.Stop()
 }

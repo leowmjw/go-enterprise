@@ -7,8 +7,13 @@ import (
 )
 
 type WFDemoInput struct {
-	Name string
-	Docs []Document
+	Name  string
+	Users []string
+	Docs  []Document
+}
+
+type WFDemoOutput struct {
+	Content string
 }
 
 // SimpleWorkflow is dummy workflow ...
@@ -55,7 +60,19 @@ func ActionWorkflow(ctx workflow.Context, input WFDemoInput) error {
 
 	// Setup the first time ..
 	// If have previous state; reload here ... and restart any process ..
-
+	ad, naerr := NewAuthzDemo("", "")
+	if naerr != nil {
+		logger.Error("NewAuthzDemo failed.", "Error", naerr)
+		return naerr
+	}
+	// Init data ..
+	ad.users = input.Users
+	ad.docs = input.Docs
+	serr := ad.setupTuples()
+	if serr != nil {
+		logger.Error("SetupTuples failed.", "Error", serr)
+		return serr
+	}
 	// Define signals
 	var actions Actions
 	signalChan := workflow.GetSignalChannel(ctx, "actionSignal")
@@ -73,6 +90,8 @@ func ActionWorkflow(ctx workflow.Context, input WFDemoInput) error {
 	// Handling Termination + state saving mechanism ..
 	selector.AddReceive(terminateChan, func(c workflow.ReceiveChannel, more bool) {
 		logger.Info("Received terminate signal")
+		// Dump out state ..
+		ad.debugState()
 		// Simulate cleaning up .. and persisting data ..
 		err := workflow.Sleep(ctx, time.Second) // TODO: Jitter based on random so can be between 300ms to 1500 ms
 		if err != nil {

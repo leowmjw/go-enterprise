@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 )
@@ -33,6 +34,9 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func documentHandler(w http.ResponseWriter, r *http.Request) {
+	// Get our Demo Workflow ..
+	wfr := c.GetWorkflow(context.Background(), orgID, "")
+	wfr.GetRunID()
 
 	// WorkflowID: <username>-approver
 	// WorkflowID: <docID>
@@ -49,9 +53,17 @@ func documentHandler(w http.ResponseWriter, r *http.Request) {
 			// Redirect back to top level??
 
 		case "view":
-			// If no document .. BadRequest
-			// Check if got viewer access or not ..
-			// if yes, show secrets .. else naughty! can for access
+		// If no document .. BadRequest
+		// Check if got viewer access or not ..
+		// if yes, show secrets .. else naughty! can for access
+
+		case "kil":
+			err := c.SignalWorkflow(context.Background(), orgID, "", "terminateSignal", true)
+			if err != nil {
+				fmt.Println("ERR: ", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 		default:
 			w.WriteHeader(http.StatusBadRequest)
 			return
