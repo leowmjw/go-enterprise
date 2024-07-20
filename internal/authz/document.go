@@ -10,7 +10,9 @@ type Document struct {
 var as AuthStore
 
 type AuthzDemo struct {
-	as AuthStore
+	as               AuthStore
+	docs             []Document
+	awaitingApproval []string // WorkflowID for Owner-Docs requested ..
 }
 
 // NewAuthzDemo to start workflow ..
@@ -23,7 +25,7 @@ func NewAuthzDemo(apiURL, policyPath string) AuthzDemo {
 	//	panic(err)
 	//}
 	// Connect Temporal?
-	return AuthzDemo{as}
+	return AuthzDemo{as: as}
 }
 
 func init() {

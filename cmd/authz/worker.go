@@ -2,24 +2,35 @@ package main
 
 import (
 	"app/internal/authz"
+	"fmt"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
-// NewDemoWorker ...
-func NewDemoWorker(c client.Client) worker.Worker {
-	// Create the Temporal client
-	//c, err := client.NewLazyClient(client.Options{})
-	//if err != nil {
-	//	log.Fatalln("Unable to create Temporal client", err)
-	//}
-	//defer c.Close()
-
+func SetupTemporalWorker(c client.Client) {
+	fmt.Println("Run Temporal Worker ....")
 	// Create a worker that listens on the task queue and hosts the workflow and activity functions
 	w := worker.New(c, TQ, worker.Options{})
 
 	w.RegisterWorkflow(authz.SimpleWorkflow)
 	w.RegisterActivity(authz.GreetActivity)
+	err := w.Start()
+	if err != nil {
+		fmt.Println("Worker error:", err)
+	}
 
-	return w
+	// Prepare for handling signals
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
+
+	// Wait for interrupt signal
+	interruptSignal := <-interrupt
+	fmt.Printf("TEMPORAL-WORKER: Received %s, shutting down.\n", interruptSignal)
+
+	// Shutdown Temporal Worker ...
+	fmt.Println("Stopping Temporal Worker...")
+	w.Stop()
 }
