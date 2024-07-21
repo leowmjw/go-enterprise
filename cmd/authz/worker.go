@@ -16,6 +16,7 @@ func SetupTemporalWorker(c client.Client) {
 	w := worker.New(c, TQ, worker.Options{})
 
 	w.RegisterWorkflow(authz.SimpleWorkflow)
+	w.RegisterWorkflow(authz.ActionWorkflow)
 	w.RegisterActivity(authz.GreetActivity)
 	err := w.Start()
 	if err != nil {

@@ -46,7 +46,7 @@ func Run() {
 	// Setup the Sanity Test Scenario ..
 	go SetupSimpleWorkflow(c)
 	// Actual Demo Scenario ..
-	//go SetupActionWorkflow(c)
+	go SetupActionWorkflow(c)
 
 	// Running the Temporal Worker in a go routine ..
 	go SetupTemporalWorker(c)

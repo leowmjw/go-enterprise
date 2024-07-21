@@ -14,11 +14,11 @@ func TestActionWorkflow(t *testing.T) {
 	// Mock signals
 	env.RegisterDelayedCallback(func() {
 		env.SignalWorkflow("actionSignal", Actions{CheckApproval: true})
-	}, time.Minute)
+	}, time.Minute*30)
 
 	env.RegisterDelayedCallback(func() {
 		env.SignalWorkflow("terminateSignal", true)
-	}, 2*time.Minute)
+	}, time.Hour*20)
 
 	env.ExecuteWorkflow(ActionWorkflow, WFDemoInput{
 		Name: "",

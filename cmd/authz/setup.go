@@ -84,14 +84,14 @@ func SetupActionWorkflow(c client.Client) {
 	// DEBUG
 	//spew.Dump(docsInit)
 
-	fmt.Println("Start Temporal Workflow ....")
-	// Start the workflow
+	fmt.Println("Start Temporal Workflow ==> ActionWorkflow")
+	// Start the workflow - ActionWorkflow
 	workflowOptions := client.StartWorkflowOptions{
 		ID:        orgID,
 		TaskQueue: TQ,
 	}
 	we, err := c.ExecuteWorkflow(context.Background(), workflowOptions,
-		authz.SimpleWorkflow,
+		authz.ActionWorkflow,
 		authz.WFDemoInput{
 			Users: usersInit,
 			Docs:  docsInit,
@@ -100,21 +100,24 @@ func SetupActionWorkflow(c client.Client) {
 		log.Fatalln("Unable to execute workflow", err)
 	}
 	fmt.Print("Starting workflow for Org ", orgID, " RunID: ", we.GetRunID())
-
+	// Below for DEBUG of flow; shoul all be triggred in the handler !!!
+	// Delay to send action signal ..
+	time.Sleep(time.Second * 15)
+	saerr := c.SignalWorkflow(context.Background(), orgID, we.GetRunID(), "actionSignal", authz.Actions{
+		GetAdminElevated: true,
+	})
+	if saerr != nil {
+		log.Fatalln("Unable to signal workflow", saerr)
+	}
 	// Delay ,.. then terminate ...
-	time.Sleep(time.Minute * 2)
-	fmt.Println("AFTER 2 mins!!! =====>> ****")
+	time.Sleep(time.Second * 30)
+	fmt.Println("AFTER 30s!!! =====>> ****")
 	serr := c.SignalWorkflow(context.Background(), orgID, we.GetRunID(), "terminateSignal", authz.Actions{
 		GetAdminElevated: true,
 	})
 	if serr != nil {
 		log.Fatalln("Unable to signal workflow", serr)
 	}
-	serr = c.SignalWorkflow(context.Background(), orgID, we.GetRunID(), "actionSignal", authz.Actions{
-		GetAdminElevated: true,
-	})
-	if serr != nil {
-		log.Fatalln("Unable to signal workflow", serr)
-	}
+
 	return
 }

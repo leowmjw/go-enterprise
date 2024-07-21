@@ -31,7 +31,7 @@ func NewAuthzDemo(apiURL, policyPath string) (AuthzDemo, error) {
 		apiURL = os.Getenv("FGA_API_URL")
 	}
 	if policyPath == "" {
-		policyPath = "openfga/models/direct-access.json"
+		policyPath = "../../openfga/models/direct-access.json"
 	}
 	// Load Store
 	as := NewAuthStore(apiURL)
