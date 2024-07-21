@@ -6,6 +6,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	. "github.com/openfga/go-sdk/client"
 	"os"
+	"strings"
 )
 
 type Document struct {
@@ -41,20 +42,47 @@ func NewAuthzDemo(apiURL, policyPath string) (AuthzDemo, error) {
 		fmt.Println("Failed to prepare model!! ERR:", err)
 		return AuthzDemo{}, err
 	}
-
+	// All setup .. return it back now ..
 	return AuthzDemo{as: as}, nil
 }
 
 func (ad AuthzDemo) setupTuples() error {
 	// Start with a very naive impleemntation ..
+	// Example:
+	//	{
+	//	User:     "user:mleow",
+	//	Relation: "viewer",
+	//	Object:   "document:public/welcome.doc",
+	//}
 	keys := make([]ClientTupleKey, 0)
 	for _, doc := range ad.docs {
 		fmt.Print("DocPath:", doc.ID, " Owner:", doc.Owner)
 		// For each doc; set owner as viewer + editor
+		if doc.Owner != "" {
+			keys = append(keys, ClientTupleKey{
+				User:     "user:" + doc.Owner,
+				Relation: "editor",
+				Object:   "document:" + doc.ID,
+			})
+		}
 		// For docs with public; as viewer anyone?
+		if strings.HasPrefix(doc.ID, "public/") {
+			for _, user := range ad.users {
+				keys = append(keys, ClientTupleKey{
+					User:     "user:" + user,
+					Relation: "viewer",
+					Object:   "document:" + doc.ID,
+				})
+			}
+		}
 	}
 	// DEBUG
 	spew.Dump(ClientWriteTuplesBody(keys))
+	// Persist it ..
+	//err := ad.as.addTuple(ClientWriteTuplesBody(keys))
+	//if err != nil {
+	//	fmt.Println("Failed to add tuples!! ERR:", err)
+	//}
 	return nil
 }
 func (ad AuthzDemo) debugState() {

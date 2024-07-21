@@ -62,6 +62,20 @@ func NewAuthStore(apiURL string) AuthStore {
 	}
 }
 
+func (a AuthStore) addTuple(body ClientWriteTuplesBody) error {
+	wopts := ClientWriteOptions{}
+	wresp, werr := a.client.WriteTuples(context.Background()).
+		Body(body).Options(wopts).Execute()
+	if werr != nil {
+		// can ignore existnig ...
+		return werr
+	}
+	// DEBUG
+	spew.Dump(wresp.Writes)
+	spew.Dump(wresp.Deletes)
+	return nil
+}
+
 func (a AuthStore) InitDemo(demoModelPath string) error {
 	// CReate new Store .. store it for later ..
 	// dEBUzg

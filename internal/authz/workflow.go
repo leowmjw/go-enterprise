@@ -53,9 +53,7 @@ func SimpleWorkflow(ctx workflow.Context, input WFDemoInput) (string, error) {
 
 // ActionWorkflow - Process loop waiting ..
 func ActionWorkflow(ctx workflow.Context, input WFDemoInput) error {
-	// For processing clean Termination ..
-	var stopSignalSent, stopSignalProcessed bool
-
+	// Common vars ..
 	logger := workflow.GetLogger(ctx)
 	wfInfo := workflow.GetInfo(ctx)
 	workflowID := wfInfo.WorkflowExecution.ID
@@ -81,6 +79,8 @@ func ActionWorkflow(ctx workflow.Context, input WFDemoInput) error {
 	signalChan := workflow.GetSignalChannel(ctx, "actionSignal")
 	terminateChan := workflow.GetSignalChannel(ctx, "terminateSignal")
 
+	// For processing clean Termination ..
+	var terminate bool
 	// Use selector if got multiple Signal Types to handle ..
 	selector := workflow.NewSelector(ctx)
 
@@ -93,8 +93,8 @@ func ActionWorkflow(ctx workflow.Context, input WFDemoInput) error {
 
 	// Handling Termination + state saving mechanism ..
 	selector.AddReceive(terminateChan, func(c workflow.ReceiveChannel, more bool) {
+		c.Receive(ctx, nil)
 		logger.Info("Received terminate signal")
-		stopSignalSent = true
 		// Dump out state ..
 		ad.debugState()
 		// Simulate cleaning up .. and persisting data ..
@@ -103,32 +103,20 @@ func ActionWorkflow(ctx workflow.Context, input WFDemoInput) error {
 			logger.Error("Failed to sleep", "Error", err)
 		}
 		logger.Info("ActionWorkflow completed after persisting state")
-		stopSignalProcessed = true // Can finally finsh ..
+		terminate = true // Can finally finsh ..
 		return
 	})
 
-loop:
-	// Wait for a terminate signal or action signal
-	selector.Select(ctx)
-	if !stopSignalSent {
-		// Back to next signal ..
-		logger.Info("Got ACTION! Back to waiting loop!!!")
-		goto loop
+	// Process signals until a terminate signal is received
+	for {
+		// Wait for the next signal
+		selector.Select(ctx)
+		if !selector.HasPending() && terminate {
+			break
+		}
+		// If has pending signal; should contiune processing so not lost signal ..
 	}
-	// Block until Termination process is completed otherwise might get error like:
-	//		" Workflow has unhandled signals"
-	ok, err := workflow.AwaitWithTimeout(ctx, time.Minute, func() bool {
-		return stopSignalProcessed == true
-	})
-	if err != nil {
-		logger.Error("UNEXPECTED ERR:", err)
-		return err
-	} else if !ok {
-		logger.Error("Timed out waiting for actions to be processed")
-		return nil
-	}
-	// TODO: Process any remaining signals ... before shut it down ..
-	
+
 	logger.Info("ActionWorkflow completed")
 	return nil
 }
