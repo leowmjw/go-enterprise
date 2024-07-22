@@ -1,7 +1,6 @@
 package authz
 
 import (
-	"context"
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
 	. "github.com/openfga/go-sdk/client"
@@ -77,12 +76,13 @@ func (ad AuthzDemo) setupTuples() error {
 		}
 	}
 	// DEBUG
-	spew.Dump(ClientWriteTuplesBody(keys))
-	// Persist it ..
-	//err := ad.as.addTuple(ClientWriteTuplesBody(keys))
-	//if err != nil {
-	//	fmt.Println("Failed to add tuples!! ERR:", err)
-	//}
+	//spew.Dump(ClientWriteTuplesBody(keys))
+	// Persist the tuple rules ..
+	err := ad.as.addTuple(ClientWriteTuplesBody(keys))
+	if err != nil {
+		// just log it .. need a more robust solution ..
+		fmt.Println("Failed to add tuples!! ERR:", err)
+	}
 	return nil
 }
 func (ad AuthzDemo) debugState() {
@@ -92,37 +92,11 @@ func (ad AuthzDemo) debugState() {
 }
 
 func (ad AuthzDemo) checkViewerAccess(user, document string) bool {
-	//modelID, gerr := as.client.GetAuthorizationModelId()
-	//if gerr != nil {
-	//	fmt.Println("ERR:", gerr)
-	//	return false
-	//}
-	//fmt.Println("Model ID: ", modelID)
-	opts := ClientCheckOptions{}
-	// Below not needed as it takes the latest modelID for store ..
-	//opts := ClientCheckOptions{
-	//	AuthorizationModelId: openfga.PtrString(modelID),
-	//}
-
-	data, cerr := ad.as.client.Check(context.Background()).Body(ClientCheckRequest{
-		User:     "user:" + user,
-		Relation: "viewer",
-		Object:   "document:" + document,
-		//Context:          nil,
-		//ContextualTuples: []ClientTupleKey{}, // Like dynamic stuff .. MFA clicked ..
-	}).Options(opts).Execute()
-
-	if cerr != nil {
-		fmt.Println("ERR:", cerr)
-		return false
+	ok, err := ad.as.CanViewDocument(user, document)
+	if err != nil {
+		fmt.Println("ERR:", err)
 	}
-	allowed, ok := data.GetAllowedOk()
-	if ok && *allowed {
-		// is OK
-		return true
-	}
-	// Default deny ..
-	return false
+	return ok
 }
 
 func (ad AuthzDemo) getDocumentContent(user, document string) (string, error) {
@@ -139,20 +113,10 @@ func (ad AuthzDemo) getDocumentContent(user, document string) (string, error) {
 	return "", fmt.Errorf("document not found")
 }
 
-func (d Document) checkEditorAccess(user, document string) bool {
-	// Example check access
-	//modelID, gerr := as.client.GetAuthorizationModelId()
-	//if gerr != nil {
-	//	return AuthzDemo{}, gerr
-	//}
-	//data, err := as.checkAccess(modelID)
-	//allowed, ok := data.GetAllowedOk()
-	//if ok {
-	//	if *allowed {
-	//		// is OK
-	//	}
-	//} else {
-	//	// Default deny ..
-	//}
-	return false
+func (ad AuthzDemo) checkEditorAccess(user, document string) bool {
+	ok, err := ad.as.CanEditDocument(user, document)
+	if err != nil {
+		fmt.Println("ERR:", err)
+	}
+	return ok
 }

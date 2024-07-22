@@ -1,6 +1,7 @@
 package main
 
 import (
+	"app/internal/authz"
 	"context"
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
@@ -18,6 +19,15 @@ func main() {
 }
 
 var c client.Client
+var as authz.AuthStore
+
+func init() {
+	// Singleton to OpenFGA; to be used by Workers too ..
+	apiURL := os.Getenv("FGA_API_URL")
+	// Load Store
+	as = authz.NewAuthStore(apiURL)
+	//as.InitDemo("")
+}
 
 func Run() {
 	// HTTP Server Setup ..

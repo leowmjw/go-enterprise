@@ -68,12 +68,64 @@ func (a AuthStore) addTuple(body ClientWriteTuplesBody) error {
 		Body(body).Options(wopts).Execute()
 	if werr != nil {
 		// can ignore existnig ...
-		return werr
+		fmt.Println("ERR: ", werr.Error())
+		//return werr
 	}
 	// DEBUG
-	spew.Dump(wresp.Writes)
-	spew.Dump(wresp.Deletes)
+	fmt.Println("WRITE: ", len(wresp.Writes))
+	//spew.Dump(wresp.Writes)
+	//spew.Dump(wresp.Deletes)
 	return nil
+}
+
+func (a AuthStore) removeTuple(body ClientDeleteTuplesBody) error {
+	dopts := ClientWriteOptions{}
+	dresp, derr := a.client.DeleteTuples(context.Background()).
+		Body(body).Options(dopts).Execute()
+	if derr != nil {
+		fmt.Println("ERR: ", derr.Error())
+		return derr
+	}
+	// DEBUG
+	fmt.Println("DELETED: ", len(dresp.Deletes))
+	//spew.Dump(dresp.Writes)
+	//spew.Dump(dresp.Deletes)
+	return nil
+}
+
+func (a AuthStore) hasAccess(user, relation, document string) (bool, error) {
+	// Opts empty; uses the latest model ..
+	opts := ClientCheckOptions{}
+	data, cerr := a.client.Check(context.Background()).Body(ClientCheckRequest{
+		User:     "user:" + user,
+		Relation: relation,
+		Object:   "document:" + document,
+		//Context:          nil,
+		//ContextualTuples: []ClientTupleKey{}, // Like dynamic stuff .. MFA clicked ..
+	}).Options(opts).Execute()
+	// Any unexpected view ..
+	if cerr != nil {
+		fmt.Println("ERR: ", cerr.Error())
+		return false, cerr
+	}
+	// Chck if allowed and not a nil ..
+	allowed, ok := data.GetAllowedOk()
+	if ok {
+		if *allowed {
+			fmt.Println("User: ", user, " allowed to view Doc:", document)
+			return true, nil
+		}
+	}
+	// Default no access
+	return false, nil
+}
+
+func (a AuthStore) CanViewDocument(user, document string) (bool, error) {
+	return a.hasAccess(user, "viewer", document)
+}
+
+func (a AuthStore) CanEditDocument(user, document string) (bool, error) {
+	return a.hasAccess(user, "editor", document)
 }
 
 func (a AuthStore) InitDemo(demoModelPath string) error {
@@ -88,7 +140,6 @@ func (a AuthStore) InitDemo(demoModelPath string) error {
 	}
 	for i, m := range gamresp.GetAuthorizationModels() {
 		fmt.Println("ID: ", i, " MODEL: ", m.GetId())
-
 	}
 	// For future .. when need to cintune ..
 	//fmt.Println("TOKEN: ", gamresp.GetContinuationToken())

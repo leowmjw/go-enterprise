@@ -25,11 +25,13 @@ func demoHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	//fmt.Println("ID:", c.Value)
+	// List policies related to user??
 	fmt.Fprintf(w, "Goodbye Cruel World!! See ya %s", c.Value)
 
 	// Document Lists
 
 	// Pending Approvers ..
+
 	return
 }
 
@@ -69,6 +71,8 @@ func documentHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	// If owner; have the grant link ..
+
 	// Show Workflow current status under care??
 	fmt.Fprintf(w, "Nothing to see here .. docs")
 	return

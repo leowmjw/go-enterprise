@@ -1,7 +1,6 @@
 package authz
 
 import (
-	"github.com/davecgh/go-spew/spew"
 	"go.temporal.io/sdk/workflow"
 	"time"
 )
@@ -140,7 +139,23 @@ func handleActions(ctx workflow.Context, actions Actions) {
 		"ID", wfEx.ID, "RunID", wfEx.RunID,
 		"actions", actions,
 	)
-	spew.Dump(actions)
+	//spew.Dump(actions)
+	var a *Activities
+	// try out co-routine ..
+	workflow.GoNamed(ctx, "tempaccess-mleow-secret", func(ctx workflow.Context) {
+		logger.Info("Inside tempaccess-mleow-secret co-routine ..")
+		// Enable ..
+		ao := workflow.ActivityOptions{
+			StartToCloseTimeout: time.Second * 10,
+		}
+		ctx = workflow.WithActivityOptions(ctx, ao)
+		err := workflow.ExecuteActivity(ctx, a.TempAccessActivity, "mleow", "secretsz").Get(ctx, nil)
+		if err != nil {
+			logger.Error("TempAccessActivity failed.", "Error", err)
+			return
+		}
+		// Disable it ...
+	})
 }
 
 // ApprovalWorkflow will wait and block till ... approve or rejected ..  ID is docID ..

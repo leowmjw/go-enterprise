@@ -15,9 +15,14 @@ func SetupTemporalWorker(c client.Client) {
 	// Create a worker that listens on the task queue and hosts the workflow and activity functions
 	w := worker.New(c, TQ, worker.Options{})
 
+	// If do not rgister Workflow + activity .. it will just be "hanging" ...
 	w.RegisterWorkflow(authz.SimpleWorkflow)
 	w.RegisterWorkflow(authz.ActionWorkflow)
 	w.RegisterActivity(authz.GreetActivity)
+	// Important: How to register activities with deps ..
+	activities := &authz.Activities{as}
+	w.RegisterActivity(activities)
+
 	err := w.Start()
 	if err != nil {
 		fmt.Println("Worker error:", err)

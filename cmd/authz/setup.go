@@ -101,6 +101,7 @@ func SetupActionWorkflow(c client.Client) {
 	}
 	fmt.Print("Starting workflow for Org ", orgID, " RunID: ", we.GetRunID())
 	// Below for DEBUG of flow; shoul all be triggred in the handler !!!
+	// =================================>
 	// Delay to send action signal ..
 	time.Sleep(time.Second * 15)
 	saerr := c.SignalWorkflow(context.Background(), orgID, we.GetRunID(), "actionSignal", authz.Actions{
