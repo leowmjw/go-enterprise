@@ -128,6 +128,31 @@ func (a AuthStore) CanEditDocument(user, document string) (bool, error) {
 	return a.hasAccess(user, "editor", document)
 }
 
+func (a AuthStore) AddViewRelationship(user, document string) error {
+	// TODO: What further valdiations??
+	// This can add conditions ..
+	t := []ClientTupleKey{
+		{
+			User:     "user:" + user,
+			Relation: "viewer",
+			Object:   "document:" + document,
+		},
+	}
+	return a.addTuple(t)
+}
+
+func (a AuthStore) RemoveViewRelationship(user, document string) error {
+	// TODO: What further valdiations??
+	t := []ClientTupleKeyWithoutCondition{
+		{
+			User:     "user:" + user,
+			Relation: "viewer",
+			Object:   "document:" + document,
+		},
+	}
+	return a.removeTuple(t)
+}
+
 func (a AuthStore) InitDemo(demoModelPath string) error {
 	// CReate new Store .. store it for later ..
 	// dEBUzg
@@ -158,6 +183,11 @@ func (a AuthStore) InitDemo(demoModelPath string) error {
 	return nil
 }
 
+// ===================================================================================
+//
+//	<<<<<<<<<<<<<<<<<<  OLD CODE BELOW   >>>>>>>>>>>>>>>>>>>
+//
+// ===================================================================================
 func (a AuthStore) DemoPrepareModel(demoModelPath string) error {
 	// Read the special JSON model .. it will crap out if not proper JSON!!
 	b, err := os.ReadFile(demoModelPath)

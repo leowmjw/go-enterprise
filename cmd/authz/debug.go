@@ -1,14 +1,18 @@
 package main
 
 import (
+	"app/internal/authz"
 	"context"
 	"fmt"
 	"net/http"
 )
 
 func renderDefault() string {
-	result := "<h3><strong>ACCESS MATRIX</strong></h3>"
-	result += "<div>"
+	result := `
+<html>
+<h3><strong>ACCESS MATRIX</strong></h3>
+<div>
+`
 	// Get current model
 	// Test access for all the users .. print out the report ..
 	// Grant .. and check ...
@@ -17,7 +21,7 @@ func renderDefault() string {
 	docs := []string{"public/welcome.doc", "secret/secretz.doc"}
 	for _, user := range users {
 		for _, doc := range docs {
-			result += doc
+			result += "<strong>" + user + "</strong> " + doc
 			ok, _ := as.CanViewDocument(user, doc)
 			if ok {
 				result += " - YES "
@@ -27,12 +31,17 @@ func renderDefault() string {
 			result += "<br/>"
 		}
 	}
-	result += "</div>"
 	result += `
+</div>
 <div>
-	<a href=\"/demo/debug/?action=temp\">Grant Temp Access</a>
-	<a href=\"/demo/debug/?action=kil\">Terminate</a>
-</div>`
+<p>
+	<a href="/demo/debug/">Main</a><br/>
+	<a href="/demo/debug/?action=temp">Grant Temp Access</a><br/>
+	<a href="/demo/debug/?action=kil">Terminate</a><br/>
+</p>
+</div>
+</html>
+`
 
 	return result
 }
@@ -51,11 +60,18 @@ func debugAccessHandler(w http.ResponseWriter, r *http.Request) {
 		switch q.Get("action") {
 		case "temp":
 			// Temp access for 2 mins??
-
+			err := c.SignalWorkflow(context.Background(), orgID, "", "actionSignal", authz.Actions{
+				TempElevated: true,
+			})
+			if err != nil {
+				fmt.Println("TEMP-ERR: ", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
 		case "kil":
 			err := c.SignalWorkflow(context.Background(), orgID, "", "terminateSignal", true)
 			if err != nil {
-				fmt.Println("ERR: ", err)
+				fmt.Println("KIL-ERR: ", err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}

@@ -13,7 +13,7 @@ type WFDemoInput struct {
 
 type Actions struct {
 	CheckApproval    bool
-	GetAdminElevated bool
+	TempElevated     bool
 	AddPermission    bool
 	RemovePermission bool
 }
@@ -141,21 +141,32 @@ func handleActions(ctx workflow.Context, actions Actions) {
 	)
 	//spew.Dump(actions)
 	var a *Activities
-	// try out co-routine ..
-	workflow.GoNamed(ctx, "tempaccess-mleow-secret", func(ctx workflow.Context) {
-		logger.Info("Inside tempaccess-mleow-secret co-routine ..")
-		// Enable ..
-		ao := workflow.ActivityOptions{
-			StartToCloseTimeout: time.Second * 10,
-		}
-		ctx = workflow.WithActivityOptions(ctx, ao)
-		err := workflow.ExecuteActivity(ctx, a.TempAccessActivity, "mleow", "secretsz").Get(ctx, nil)
-		if err != nil {
-			logger.Error("TempAccessActivity failed.", "Error", err)
-			return
-		}
-		// Disable it ...
-	})
+	if actions.TempElevated {
+		cname := "tempaccess-mleow-secret-" + workflow.Now(ctx).String()
+		// try out co-routine ..
+		workflow.GoNamed(ctx, cname, func(ctx workflow.Context) {
+			logger.Info("Inside co-routine:", cname)
+			// Just in case; put a timeout ..
+			ao := workflow.ActivityOptions{
+				StartToCloseTimeout: time.Second * 10,
+			}
+			ctx = workflow.WithActivityOptions(ctx, ao)
+			err := workflow.ExecuteActivity(ctx, a.TempAccessActivity, "mleow", "secret/secretz.doc").Get(ctx, nil)
+			if err != nil {
+				logger.Error("TempAccessActivity failed.", "Error", err)
+				return
+			}
+			// Disable it after 1 min
+			workflow.Sleep(ctx, time.Second*30)
+			xerr := workflow.ExecuteActivity(ctx, a.RemoveAccessActivity, "mleow", "secret/secretz.doc").Get(ctx, nil)
+			if xerr != nil {
+				logger.Error("RemoveAccessActivity failed.", "Error", xerr)
+				return
+			}
+		})
+	}
+
+	return
 }
 
 // ApprovalWorkflow will wait and block till ... approve or rejected ..  ID is docID ..

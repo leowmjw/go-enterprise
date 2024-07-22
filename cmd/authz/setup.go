@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"go.temporal.io/sdk/client"
 	"log"
-	"time"
 )
 
 const TQ = "example-task-queue"
@@ -79,6 +78,11 @@ func SetupActionWorkflow(c client.Client) {
 			Owner:   "bob",
 			Content: "Secretz",
 		},
+		authz.Document{
+			ID:      "secret/salary.doc",
+			Owner:   "mleow",
+			Content: "Lotsa Moolah!!",
+		},
 	}
 	usersInit := []string{"bob", "mleow"}
 	// DEBUG
@@ -99,26 +103,26 @@ func SetupActionWorkflow(c client.Client) {
 	if err != nil {
 		log.Fatalln("Unable to execute workflow", err)
 	}
-	fmt.Print("Starting workflow for Org ", orgID, " RunID: ", we.GetRunID())
+	fmt.Print("Started workflow for Org ", orgID, " RunID: ", we.GetRunID())
 	// Below for DEBUG of flow; shoul all be triggred in the handler !!!
 	// =================================>
-	// Delay to send action signal ..
-	time.Sleep(time.Second * 15)
-	saerr := c.SignalWorkflow(context.Background(), orgID, we.GetRunID(), "actionSignal", authz.Actions{
-		GetAdminElevated: true,
-	})
-	if saerr != nil {
-		log.Fatalln("Unable to signal workflow", saerr)
-	}
-	// Delay ,.. then terminate ...
-	time.Sleep(time.Second * 30)
-	fmt.Println("AFTER 30s!!! =====>> ****")
-	serr := c.SignalWorkflow(context.Background(), orgID, we.GetRunID(), "terminateSignal", authz.Actions{
-		GetAdminElevated: true,
-	})
-	if serr != nil {
-		log.Fatalln("Unable to signal workflow", serr)
-	}
+	//// Delay to send action signal ..
+	//time.Sleep(time.Second * 15)
+	//saerr := c.SignalWorkflow(context.Background(), orgID, we.GetRunID(), "actionSignal", authz.Actions{
+	//	GetAdminElevated: true,
+	//})
+	//if saerr != nil {
+	//	log.Fatalln("Unable to signal workflow", saerr)
+	//}
+	//// Delay ,.. then terminate ...
+	//time.Sleep(time.Second * 30)
+	//fmt.Println("AFTER 30s!!! =====>> ****")
+	//serr := c.SignalWorkflow(context.Background(), orgID, we.GetRunID(), "terminateSignal", authz.Actions{
+	//	GetAdminElevated: true,
+	//})
+	//if serr != nil {
+	//	log.Fatalln("Unable to signal workflow", serr)
+	//}
 
 	return
 }
