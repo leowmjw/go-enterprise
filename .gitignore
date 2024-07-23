@@ -26,3 +26,6 @@ go.work
 # Ignore Direnv
 .envrc
 
+# Ignore Mac files
+.DS_Store
+

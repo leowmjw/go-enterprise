@@ -1,3 +1,6 @@
+present:
+	@present -notes
+
 run:
 	@go run *.go
 
