@@ -13,6 +13,10 @@ start-server:
 	@cd cmd/authz && go run *.go
 	# @cd cmd/kilcron && go run main.go
 
+start-kilcron:
+	@echo "Start kilcron .."
+	@cd cmd/kilcron && go run debug.go worker.go main.go
+
 start-openfga:
 	@echo "Start OpenFGA Server"
 	@openfga run

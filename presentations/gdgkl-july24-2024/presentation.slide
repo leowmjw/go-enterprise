@@ -1,15 +1,12 @@
-# Title of document
-Subtitle of document
-15:04 2 Jan 2006
-Tags: foo, bar, baz
+# Showcase: Go in Enterprise
+Solving common challenges with Temporal + OpenFGA
+18:00 24 July 2024
+Tags: temporal, openfga, authorization, cron
 Summary: This is a great document you want to read.
 OldURL: former-path-for-this-doc
 
-Author Name
-Job title, Company
-joe@example.com
-https://url/
-@twitter_name
+Michael Leow
+Go Enthusiast
 
 ## Title of Slide or Section (must begin with ##)
 
@@ -124,4 +121,17 @@ Visit [the Go home page](https://golang.org/).
   - Enhances workflow security by dynamically applying access controls.
   - Ideal for environments where permissions need to adapt quickly to changes.
 
-: presenter notes ...
+: presenter notes ...]]
+
+
+## Resources
+
+### Durable Execution
+
+Crowded market ... who wins? Who has best DX?
+
+- Restate (Rust)
+- Inngest (JS)
+- Golem Cloud (WASM)
+- LittleHorse (Rust/Kafka)
+- Cloudflare Durable Execution (Coming sooon..)
