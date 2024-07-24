@@ -3,7 +3,7 @@
 Solving common challenges with Temporal + OpenFGA
 Tags: temporal, openfga, authorization, cron
 
-*Disclaimer:* Talk is opinion; does not reflect position of employer.
+*Disclaimer:* Talk is opinion of speaker; does not reflect position of employer.
 
 Michael Leow
 Go Enthusiast
@@ -32,11 +32,10 @@ Go Enthusiast
 
 - Startup getting traction
 - Any long running day-to-day process: reports, payment, data processing
+- Don't: Extend your web server timeout!
 
 - Cron to the rescue!!
 : Aha! Cron
-
-- Don't: Extend your web server timeout!
 
 - Now got more problems
 : Running fine until it crash between item 90,000 out of 100,000 ..maybe
