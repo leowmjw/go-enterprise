@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"golang.org/x/exp/rand"
+	"strings"
 	"sync"
 	"time"
 )
@@ -28,7 +29,7 @@ func MockFlakyHTTPCall() error {
 	currentCount := requestCount
 	countMutex.Unlock()
 
-	if currentCount <= 3 {
+	if currentCount <= 5 {
 		fmt.Println("BEFORE:", time.Now())
 		time.Sleep(time.Millisecond * time.Duration(rand.Intn(1001)+500))
 		fmt.Println("AFTER:", time.Now())
@@ -51,8 +52,13 @@ func MockFlakyHTTPCall() error {
 
 func MakePayment(ctx context.Context, paymentID string) error {
 	fmt.Println("MakePayment: ID:", paymentID)
+	if strings.Contains(paymentID, "Flaky") {
+		fmt.Println("Flaky edition ..")
+		return MockFlakyHTTPCall()
+	}
+	fmt.Println("Normal edition ..")
 	// Below to test flaky calls ..
-	return MockFlakyHTTPCall()
+	return MockHTTPCall()
 	//return MockHTTPCall()
-	return nil
+	//return nil
 }
