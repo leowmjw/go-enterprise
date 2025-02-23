@@ -29,3 +29,6 @@ go.work
 # Ignore Mac files
 .DS_Store
 
+# Ignore binaries
+./batch
+
