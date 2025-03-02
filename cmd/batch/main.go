@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"app/internal/batch"
+	"app/internal/batch/service"
 
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"
@@ -37,6 +38,8 @@ func Run() {
 	}
 	defer c.Close()
 
+
+
 	// Create worker variable to track worker instance
 	var w worker.Worker
 
@@ -44,10 +47,18 @@ func Run() {
 	go func() {
 		w = worker.New(c, "batch-demo", worker.Options{})
 		w.RegisterWorkflow(batch.BatchWorkflow)
+		w.RegisterWorkflow(batch.ExecuteBatchScript)
+		w.RegisterActivity(batch.ExecuteScript)
 		w.RegisterActivity(batch.Scenario1a)
 		w.RegisterActivity(batch.Scenario1b)
 		w.RegisterActivity(batch.Scenario2a)
 		w.RegisterActivity(batch.Scenario2b)
+
+		// Register Nexus service
+		if err := service.RegisterNexusService(w); err != nil {
+			log.Printf("Failed to register Nexus service: %v", err)
+			return
+		}
 
 		if err := w.Run(worker.InterruptCh()); err != nil {
 			log.Printf("Worker stopped: %v", err)
@@ -75,12 +86,29 @@ func Run() {
 		}
 	}()
 
+	// Create web handler
+	webHandler, err := batch.NewWebHandler(c)
+	if err != nil {
+		log.Fatalf("Failed to create web handler: %v", err)
+	}
+
+	// Create HTTP server with mux
+	mux := http.NewServeMux()
+	webHandler.RegisterRoutes(mux)
+
+	// Add default handler
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			http.Redirect(w, r, "/execute", http.StatusFound)
+			return
+		}
+		http.NotFound(w, r)
+	})
+
 	// Create HTTP server
 	srv := &http.Server{
-		Addr: ":8080",
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			fmt.Fprintf(w, "Batch demo server running")
-		}),
+		Addr:    ":8080",
+		Handler: mux,
 	}
 
 	// Start HTTP server in a goroutine

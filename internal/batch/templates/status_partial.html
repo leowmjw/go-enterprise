@@ -1,0 +1,24 @@
+<article>
+    <header>
+        Operation Status
+    </header>
+    <div hx-get="/execute/status/{{.OperationID}}"
+         hx-trigger="every 2s"
+         hx-swap="outerHTML"
+         {{if eq .Status "Completed"}}hx-trigger="none"{{end}}>
+        <p>
+            <strong>Operation ID:</strong> {{.OperationID}}<br>
+            <strong>Status:</strong> {{.Status}}
+        </p>
+        {{if .Result}}
+            {{if .Result.Success}}
+                <pre><code>{{.Result.Output}}</code></pre>
+            {{else}}
+                <article class="error">
+                    <p>Error: {{.Result.ErrorMessage}}</p>
+                    <pre><code>{{.Result.Output}}</code></pre>
+                </article>
+            {{end}}
+        {{end}}
+    </div>
+</article>

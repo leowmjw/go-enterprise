@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batch Script Executor</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+<body>
+    <main class="container">
+        <h1>Batch Script Executor</h1>
+        
+        <form hx-post="/execute/submit" 
+              hx-target="#result"
+              hx-swap="innerHTML">
+            <div class="grid">
+                <label>
+                    API Function
+                    <input type="text" 
+                           name="apiFunction" 
+                           placeholder="API function to call"
+                           required>
+                </label>
+                
+                <label>
+                    Script Path
+                    <input type="text" 
+                           name="scriptPath" 
+                           placeholder="Path to script in scripts folder"
+                           required>
+                </label>
+            </div>
+            
+            <div class="grid">
+                <label>
+                    Executor Command
+                    <input type="text" 
+                           name="executorCmd" 
+                           value="uv"
+                           required>
+                </label>
+                
+                <label>
+                    Nexus Path
+                    <input type="text" 
+                           name="nexusPath" 
+                           placeholder="Nexus execution path"
+                           required>
+                </label>
+            </div>
+            
+            <button type="submit">Execute Script</button>
+        </form>
+
+        <div id="result" class="margin-top">
+            <!-- Results will be inserted here -->
+        </div>
+    </main>
+</body>
+</html>

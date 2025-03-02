@@ -3,6 +3,7 @@ package batch
 import (
 	"time"
 
+	"app/internal/batch/service"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )
@@ -43,4 +44,29 @@ func BatchWorkflow(ctx workflow.Context) error {
 	}
 
 	return nil
+}
+
+// ExecuteBatchScript executes a script with API function using specified executor
+func ExecuteBatchScript(ctx workflow.Context, input service.ScriptExecutionInput) (*service.ScriptExecutionResult, error) {
+	ao := workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Minute,
+		RetryPolicy: &temporal.RetryPolicy{
+			MaximumAttempts:    3,
+			InitialInterval:    time.Second,
+			BackoffCoefficient: 2.0,
+			NonRetryableErrorTypes: []string{
+				"ScriptNotFoundError",
+				"InvalidInputError",
+			},
+		},
+	}
+	ctx = workflow.WithActivityOptions(ctx, ao)
+
+	var result service.ScriptExecutionResult
+	err := workflow.ExecuteActivity(ctx, ExecuteScript, input).Get(ctx, &result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result, nil
 }
