@@ -21,3 +21,16 @@ Sub-scenrio using uv to use httpie to call the http function
   Sub-scenario 2b:
 
     - Call a dummy endpoint where there is incorrect auth; so 401 about 20% of time, but otherwise will return a result
+
+
+## HTTP Batch Scenario
+
+A special scenario that demonstrates batch HTTP requests using the uv command-line utility:
+
+  HTTP Batch Scenario:
+
+    - Executes 10 HTTP GET requests to various websites using the uv command
+    - Records the response from each request in the workflow result
+    - Demonstrates the ability to execute external commands and process their outputs
+    - Can be triggered by setting the ExecutorCmd to "uv" and APIFunction to "http_batch"
+    - No script path is needed for this special scenario

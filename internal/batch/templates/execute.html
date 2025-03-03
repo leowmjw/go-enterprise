@@ -6,18 +6,33 @@
     <title>Batch Script Executor</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        .scenario-preset {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+    </style>
 </head>
 <body>
     <main class="container">
         <h1>Batch Script Executor</h1>
         
-        <form hx-post="/execute/submit" 
+        <div class="scenario-preset">
+            <h3>Quick Scenario: HTTP Batch</h3>
+            <p>Execute a batch of 10 HTTP requests to random sites using uv</p>
+            <button id="http-batch-preset">Run HTTP Batch</button>
+        </div>
+        
+        <form id="execute-form" hx-post="/execute/submit" 
               hx-target="#result"
               hx-swap="innerHTML">
             <div class="grid">
                 <label>
                     API Function
                     <input type="text" 
+                           id="apiFunction"
                            name="apiFunction" 
                            placeholder="API function to call"
                            required>
@@ -26,6 +41,7 @@
                 <label>
                     Script Path
                     <input type="text" 
+                           id="scriptPath"
                            name="scriptPath" 
                            placeholder="Path to script in scripts folder"
                            required>
@@ -36,6 +52,7 @@
                 <label>
                     Executor Command
                     <input type="text" 
+                           id="executorCmd"
                            name="executorCmd" 
                            value="uv"
                            required>
@@ -44,6 +61,7 @@
                 <label>
                     Nexus Path
                     <input type="text" 
+                           id="nexusPath"
                            name="nexusPath" 
                            placeholder="Nexus execution path"
                            required>
@@ -52,6 +70,16 @@
             
             <button type="submit">Execute Script</button>
         </form>
+        
+        <script>
+            document.getElementById('http-batch-preset').addEventListener('click', function() {
+                document.getElementById('apiFunction').value = 'http_batch';
+                document.getElementById('scriptPath').value = 'http_batch_test.sh';
+                document.getElementById('executorCmd').value = 'uv';
+                document.getElementById('nexusPath').value = 'batch.http';
+                document.getElementById('execute-form').submit();
+            });
+        </script>
 
         <div id="result" class="margin-top">
             <!-- Results will be inserted here -->

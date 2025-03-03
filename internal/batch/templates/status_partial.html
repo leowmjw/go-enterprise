@@ -2,12 +2,12 @@
     <header>
         Operation Status
     </header>
-    <div hx-get="/execute/status/{{.OperationID}}"
+    <div hx-get="/execute/status/{{.WorkflowID}}"
          hx-trigger="every 2s"
          hx-swap="outerHTML"
          {{if eq .Status "Completed"}}hx-trigger="none"{{end}}>
         <p>
-            <strong>Operation ID:</strong> {{.OperationID}}<br>
+            <strong>Workflow ID:</strong> {{.WorkflowID}}<br>
             <strong>Status:</strong> {{.Status}}
         </p>
         {{if .Result}}
