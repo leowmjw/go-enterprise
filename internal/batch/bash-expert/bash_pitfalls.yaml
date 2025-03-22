@@ -1,0 +1,250 @@
+# Bash Pitfalls Content
+
+introduction: |
+  This page is a compilation of common mistakes made by bash users. Each example is flawed in some way.
+  Following these guidelines will help you write more robust and error-free Bash scripts.
+
+pitfalls:
+  - title: "for f in $(ls *.mp3)"
+    description: |
+      Using command substitution with ls to iterate over files has multiple problems:
+      1. If a filename contains whitespace, it undergoes WordSplitting
+      2. If a filename contains glob characters, it undergoes expansion
+      3. Cannot distinguish between multiple filenames in the output
+      4. The ls utility may mangle filenames
+      5. CommandSubstitution strips trailing newline characters
+      6. Filenames starting with a hyphen may be interpreted as options
+    correct_approach: |
+      # For non-recursive file operations:
+      for file in ./*.mp3; do
+          [ -e "$file" ] || continue
+          some command "$file"  # Always double-quote expansions!
+      done
+      
+      # For recursive operations:
+      find . -type f -name '*.mp3' -exec some command {} \;
+      # Or with bash 4.0+:
+      shopt -s globstar
+      for file in ./**/*.mp3; do
+          some command "$file"
+      done
+
+  - title: "cp $file $target"
+    description: |
+      Without double quotes, variables are subject to word splitting and pathname expansion.
+      If the filename contains spaces or special characters, the command will fail.
+    correct_approach: |
+      cp -- "$file" "$target"
+
+  - title: "Filenames with leading dashes"
+    description: |
+      Filenames beginning with a dash (-) can be mistaken for command options.
+    correct_approach: |
+      # Use -- to signify the end of options:
+      rm -- -badname
+      
+      # Or prepend a path:
+      rm ./-badname
+
+  - title: "[ $foo = "bar" ]"
+    description: |
+      If $foo is empty or unset, this expands to [ = "bar" ], which is a syntax error.
+    correct_approach: |
+      [ "$foo" = "bar" ]  # Double-quote variables to prevent empty variable issues
+
+  - title: "[[ $foo > 7 ]]"
+    description: |
+      The > operator in [[ ]] performs string comparison, not numeric comparison.
+      This will do lexicographical comparison instead of numerical.
+    correct_approach: |
+      [[ $foo -gt 7 ]]  # Use -gt for numeric comparison
+      # Or for arithmetic comparison:
+      (( foo > 7 ))
+
+  - title: "grep foo bar | while read -r; do ((count++)); done"
+    description: |
+      The loop runs in a subshell due to the pipe, so variable changes like count++ won't
+      persist after the loop in most shells.
+    correct_approach: |
+      # In Bash, use process substitution to avoid the subshell problem:
+      while read -r line; do
+          ((count++))
+      done < <(grep foo bar)
+      
+      # Or use a here-string with grep -c to count directly:
+      count=$(grep -c foo bar)
+
+  - title: "if [grep foo myfile]"
+    description: |
+      This tries to use the output of grep as a test condition, but [ doesn't work this way.
+      The test command expects specific syntax, not command output.
+    correct_approach: |
+      # Test the exit status directly:
+      if grep -q foo myfile; then
+          echo "Pattern found"
+      fi
+
+  - title: "read $foo"
+    description: |
+      This attempts to read input into the value of $foo, not the variable foo itself.
+      The $ is used for dereferencing, not for assignment.
+    correct_approach: |
+      read foo  # Without $ for the variable name
+      
+      # For reading into multiple variables:
+      read var1 var2 var3
+
+  - title: "cat file | sed s/foo/bar/ > file"
+    description: |
+      This tries to redirect the output of the command back to the input file.
+      The redirection happens before the command runs, so the file is truncated first.
+    correct_approach: |
+      # Use a temporary file:
+      sed s/foo/bar/ file > tmpfile && mv tmpfile file
+      
+      # Or use sed's in-place option if available:
+      sed -i 's/foo/bar/' file  # GNU sed
+      sed -i '' 's/foo/bar/' file  # BSD sed
+
+  - title: "echo $foo"
+    description: |
+      Without quotes, the variable expansion can result in word splitting and glob expansion,
+      potentially altering the output or causing unexpected behavior.
+    correct_approach: |
+      echo "$foo"  # Always quote variable expansions in echo
+      
+      # For a safer approach that handles newlines better:
+      printf '%s\n' "$foo"
+
+  - title: "$foo=bar"
+    description: |
+      This attempts to run a command named by the value of $foo with an argument "=bar".
+      In Bash, there must be no spaces around the = for assignment.
+    correct_approach: |
+      foo=bar  # No $ when assigning a variable
+
+  - title: "cd $(dirname "$0")"
+    description: |
+      This changes the current directory to the directory containing the script,
+      but this approach has limitations when the script is sourced or when symlinks are involved.
+    correct_approach: |
+      # More reliable approach using BASH_SOURCE:
+      cd "$(dirname "${BASH_SOURCE[0]}")" || exit
+      
+      # Or for handling symlinks on Linux:
+      cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+
+  - title: "find . -name *.txt"
+    description: |
+      The glob pattern *.txt gets expanded by the shell before being passed to find,
+      which can cause unexpected results if there are matching files in the current directory.
+      If the current directory contains a file named error.txt, the command becomes
+      `find . -name error.txt`, which will only search for files named exactly "error.txt".
+    correct_approach: |
+      # Quote the pattern to prevent shell expansion:
+      find . -name "*.txt"
+      
+      # Or use single quotes:
+      find . -name '*.txt'
+
+  - title: "function my_func { ... }"
+    description: |
+      Using `function` keyword for function definitions is non-POSIX and reduces portability.
+      The `function` keyword is not recognized in POSIX sh and can cause scripts to fail in some environments.
+    correct_approach: |
+      # POSIX-compatible function definition:
+      my_func() {
+          # Function body
+      }
+
+  - title: "if $foo; then ..."
+    description: |
+      This tries to execute the value of $foo as a command and use its exit status
+      for the if condition. If $foo is empty or contains spaces, it will cause syntax errors.
+    correct_approach: |
+      # Test if variable is non-empty:
+      if [[ -n "$foo" ]]; then
+          echo "foo is non-empty"
+      fi
+      
+      # Test if variable contains a command that should be executed:
+      if [[ -n "$foo" ]] && command -v "$foo" >/dev/null 2>&1; then
+          "$foo" arguments
+      fi
+
+  - title: "for i in {1..$n}; do ..."
+    description: |
+      Brace expansion happens before variable expansion in Bash, so the variable $n
+      won't be expanded inside the braces. This results in a literal string "{1..$n}".
+    correct_approach: |
+      # Use seq (not available in all environments):
+      for i in $(seq 1 "$n"); do
+          echo "$i"
+      done
+      
+      # Or use C-style for loop (Bash specific):
+      for ((i=1; i<=n; i++)); do
+          echo "$i"
+      done
+
+  - title: "[ "$foo" = bar && "$baz" = quux ]"
+    description: |
+      The [ command (test) doesn't support && or || operators. Using them will cause a syntax error.
+    correct_approach: |
+      # Use multiple test commands with shell operators:
+      [ "$foo" = bar ] && [ "$baz" = quux ]
+      
+      # Or use [[, which does support these operators (Bash/ksh/zsh):
+      [[ "$foo" = bar && "$baz" = quux ]]
+
+  - title: "cmd1 && cmd2 || cmd3"
+    description: |
+      This is intended to run cmd3 only if cmd2 fails, but it actually runs cmd3 if either cmd1 or cmd2 fails,
+      which might not be what you want.
+    correct_approach: |
+      # Use an if statement for clarity:
+      if cmd1; then
+          cmd2 || cmd3
+      fi
+      
+      # Or use grouping to enforce precedence:
+      ( cmd1 && cmd2 ) || cmd3
+
+  - title: "[[ "$foo" =~ "$regex" ]]"
+    description: |
+      Quoting the right-hand side of the =~ operator causes it to be treated as a literal string
+      rather than a regular expression pattern.
+    correct_approach: |
+      # Store the pattern in a variable and use it unquoted:
+      regex="^[0-9]+$"
+      [[ "$foo" =~ $regex ]]
+      
+      # Or use the pattern directly without quotes:
+      [[ "$foo" =~ ^[0-9]+$ ]]
+
+  - title: "echo "Hello World > file""
+    description: |
+      This tries to redirect the output of echo to a file named "file", but because the redirection
+      is inside double quotes, it's treated as a literal > character rather than a redirection operator.
+    correct_approach: |
+      # Keep the redirection outside the quotes:
+      echo "Hello World" > file
+      
+      # For appending to a file:
+      echo "Hello World" >> file
+
+  - title: "rm -rf "$DIRECTORY"/"
+    description: |
+      If $DIRECTORY is empty or unset, this expands to `rm -rf /`, which would attempt to delete everything
+      on the root filesystem with catastrophic results.
+    correct_approach: |
+      # Check if variable is set and not empty before using it:
+      if [[ -n "$DIRECTORY" ]]; then
+          rm -rf "$DIRECTORY"/
+      else
+          echo "Error: DIRECTORY is not set" >&2
+          exit 1
+      fi
+      
+      # Or use parameter expansion to provide a default or error:
+      rm -rf "${DIRECTORY:?Error: DIRECTORY is not set}/"

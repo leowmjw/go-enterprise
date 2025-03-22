@@ -1,0 +1,1091 @@
+# Bash FAQ Content
+
+introduction: |
+  These are answers to frequently asked questions on channel #bash on the irc.libera.chat IRC network.
+  The information is presented without any warranty or guarantee of accuracy.
+  BASH is a BourneShell compatible shell, which adds many new features to its ancestor.
+  This FAQ assumes a certain level of familiarity with basic shell script syntax.
+
+faqs:
+  - id: 1
+    question: "How can I read a file (data stream, variable) line-by-line (and/or field-by-field)?"
+    brief: |
+      Don't try to use "for". Use a while loop and the read command.
+
+  - id: 2
+    question: "How can I store the return value and/or output of a command in a variable?"
+    brief: |
+      To capture a command's output, use command substitution.
+
+  - id: 4
+    question: "How can I check whether a directory is empty or not? How do I check for any empty directories?"
+    brief: |
+      In Bash, you can count files safely using the nullglob and dotglob options, which change the behavior of globbing, and an array.
+
+  - id: 5
+    question: "How can I use array variables?"
+    brief: |
+      This answer assumes you have a basic understanding of what arrays are. If you're new to this kind of programming, you may wish to start with the guide's explanation.
+
+  - id: 6
+    question: "How can I use variable variables (indirect variables, pointers, references) or associative arrays?"
+    brief: |
+      This is a complex topic covering associative arrays, name references, evaluating indirect variables, and assigning indirect variables.
+    details: |
+      Associative arrays map strings to strings, unlike indexed arrays which map integers to strings. In bash 4+, use:
+      ```bash
+      declare -A homedir           # Declare associative array
+      homedir=(                    # Compound assignment
+        [jim]=/home/jim
+        [silvia]=/u/silvia
+        [alex]=/net/home/alex
+      )
+      ```
+      
+      Prior to Bash 4, consider either using another interpreter (awk, perl, python) or simplifying your approach.
+      
+      For name references (bash 4.3+):
+      ```bash
+      declare -n ref=varname  # ref is a name reference to varname
+      ```
+
+  - id: 7
+    question: "Is there a function to return the length of a string?"
+    brief: |
+      Bash provides built-in parameter expansion for calculating string length without external commands.
+    details: |
+      The most efficient way to get string length in Bash and POSIX-compatible shells:
+      
+      ```bash
+      # Get string length
+      varname="Hello, world!"
+      length="${#varname}"
+      echo "Length: $length"  # Outputs: Length: 13
+      ```
+      
+      In Bash 3 and above, `${#varname}` returns the number of characters, not bytes, which is significant in multi-byte locales.
+      
+      Alternative methods (slower, but work in older shells):
+      
+      ```bash
+      # Using expr
+      length=$(expr length "$varname")
+      
+      # Using wc (note: this includes whitespace in some implementations)
+      length=$(echo -n "$varname" | wc -c)
+      length=$(printf %s "$varname" | wc -c)  # More portable
+      
+      # Using awk
+      length=$(awk 'BEGIN {print length(ARGV[1])}' "$varname")
+      ```
+      
+      String operations in functions:
+      
+      ```bash
+      # Function to return string length
+      strlen() {
+          echo "${#1}"
+      }
+      
+      mystring="test string"
+      len=$(strlen "$mystring")
+      echo "Length: $len"  # Outputs: Length: 11
+      ```
+
+  - id: 8
+    question: "How do I convert a string to lowercase (or uppercase)?"
+    brief: |
+      Bash offers several methods to convert string case, with different approaches based on shell version.
+    details: |
+      In Bash 4.0 and later, you can use parameter expansion:
+      
+      ```bash
+      # String to lowercase
+      string="Hello World"
+      lowercase="${string,,}"
+      echo "$lowercase"  # hello world
+      
+      # String to uppercase
+      uppercase="${string^^}"
+      echo "$uppercase"  # HELLO WORLD
+      
+      # Convert only first character
+      firstlower="${string,}"
+      echo "$firstlower"  # hello World
+      
+      # Convert only first character to uppercase
+      firstupper="${string^}"
+      echo "$firstupper"  # Hello World
+      ```
+      
+      For older versions of Bash or for POSIX compatibility:
+      
+      ```bash
+      # Using tr
+      lowercase=$(echo "$string" | tr '[:upper:]' '[:lower:]')
+      uppercase=$(echo "$string" | tr '[:lower:]' '[:upper:]')
+      
+      # Using awk
+      lowercase=$(awk '{print tolower($0)}' <<< "$string")
+      uppercase=$(awk '{print toupper($0)}' <<< "$string")
+      
+      # Using sed
+      lowercase=$(sed 's/.*/\L&/' <<< "$string")  # GNU sed
+      uppercase=$(sed 's/.*/\U&/' <<< "$string")  # GNU sed
+      ```
+      
+      Useful function approach:
+      
+      ```bash
+      # Functions for Bash 4+
+      to_lower() {
+          echo "${1,,}"
+      }
+      
+      to_upper() {
+          echo "${1^^}"
+      }
+      
+      # POSIX-compatible function
+      to_lower_posix() {
+          tr '[:upper:]' '[:lower:]' <<< "$1"
+      }
+      ```
+
+  - id: 9
+    question: "What is buffering? Or, why does my command line produce no output: tail -f logfile | grep 'foo bar' | awk ..."
+    brief: |
+      Most standard Unix commands buffer their output when used non-interactively. This means that they don't write each character (or even each line) immediately.
+
+  - id: 10
+    question: "How can I recreate a directory hierarchy structure, without the files?"
+    brief: |
+      Various methods exist for recreating directory structures without the files they contain.
+      
+  - id: 11
+    question: "How do I iterate over a range of numbers?"
+    brief: |
+      There are multiple ways to iterate over number ranges in Bash, with different approaches for performance and compatibility.
+    details: |
+      Using C-style for loop (most efficient in Bash):
+      
+      ```bash
+      # Simple range from 1 to 10
+      for ((i=1; i<=10; i++)); do
+          echo "$i"
+      done
+      
+      # With a custom step (by 2)
+      for ((i=1; i<=10; i+=2)); do
+          echo "$i"
+      done
+      
+      # Counting backwards
+      for ((i=10; i>=1; i--)); do
+          echo "$i"
+      done
+      ```
+      
+      Using brace expansion (Bash, zsh, ksh):
+      
+      ```bash
+      # Simple range
+      for i in {1..10}; do
+          echo "$i"
+      done
+      
+      # With step (Bash 4.0+)
+      for i in {1..10..2}; do  # Step by 2
+          echo "$i"
+      done
+      ```
+      
+      Using external commands (most portable):
+      
+      ```bash
+      # Using seq
+      for i in $(seq 1 10); do
+          echo "$i"
+      done
+      
+      # seq with step
+      for i in $(seq 1 2 10); do  # From 1 to 10, step by 2
+          echo "$i"
+      done
+      
+      # Using jot (BSD systems)
+      for i in $(jot 10 1); do
+          echo "$i"
+      done
+      ```
+      
+      Creating number ranges in variables:
+      
+      ```bash
+      # Store range in an array
+      numbers=($(seq 1 10))
+      for num in "${numbers[@]}"; do
+          echo "$num"
+      done
+      
+      # Dynamic range based on variables
+      start=5
+      end=15
+      for ((i=start; i<=end; i++)); do
+          echo "$i"
+      done
+      ```
+      
+  - id: 12
+    question: "How do I use ANSI and other escape sequences?"
+    brief: |
+      ANSI escape sequences provide a way to control terminal output, including color, cursor position, and text formatting.
+    details: |
+      Basic ANSI color codes for text:
+      
+      ```bash
+      # Text colors
+      RED='\033[0;31m'
+      GREEN='\033[0;32m'
+      YELLOW='\033[0;33m'
+      BLUE='\033[0;34m'
+      PURPLE='\033[0;35m'
+      CYAN='\033[0;36m'
+      NC='\033[0m' # No Color/reset
+      
+      # Usage
+      echo -e "${RED}This is red text.${NC}"
+      echo -e "${GREEN}This is green text.${NC}"
+      ```
+      
+      Using tput for more portable color codes:
+      
+      ```bash
+      # More portable approach using tput
+      RED=$(tput setaf 1)
+      GREEN=$(tput setaf 2)
+      RESET=$(tput sgr0)
+      
+      echo "${RED}This is red text.${RESET}"
+      ```
+      
+      Text formatting:
+      
+      ```bash
+      BOLD='\033[1m'
+      ITALIC='\033[3m'
+      UNDERLINE='\033[4m'
+      
+      echo -e "${BOLD}Bold text${NC}"
+      echo -e "${UNDERLINE}Underlined text${NC}"
+      ```
+      
+      Cursor movement and screen control:
+      
+      ```bash
+      # Clear screen
+      echo -e "\033[2J"
+      
+      # Move cursor to position (row 5, column 10)
+      echo -e "\033[5;10H"
+      
+      # Move cursor up 2 lines
+      echo -e "\033[2A"
+      
+      # Move cursor down 3 lines
+      echo -e "\033[3B"
+      ```
+      
+      Creating progress bars and spinners:
+      
+      ```bash
+      # Simple progress bar
+      progress_bar() {
+          local width=50
+          local percent=$1
+          local num_chars=$((width * percent / 100))
+          local bar=""
+          for ((i=0; i<num_chars; i++)); do
+              bar+="#"
+          done
+          for ((i=num_chars; i<width; i++)); do
+              bar+=" "
+          done
+          echo -ne "\r[${bar}] ${percent}%"
+      }
+      
+      # Usage
+      for i in {0..100..5}; do
+          progress_bar "$i"
+          sleep 0.1
+      done
+      echo
+      ```
+
+  - id: 13
+    question: "How can I remove or rename files whose names contain special characters?"
+    brief: |
+      Dealing with files that have special characters requires careful handling to avoid issues with shell interpretation.
+    details: |
+      General approaches for handling files with special characters:
+      
+      ```bash
+      # Always quote filenames
+      rm "file with spaces.txt"
+      
+      # Use -- to signify end of options
+      rm -- -file-starting-with-dash.txt
+      
+      # Finding and removing problematic files
+      find . -name "*[\"\'\\$\\&\\*]*" -print0 | xargs -0 rm -f
+      ```
+      
+      For files with newlines:
+      
+      ```bash
+      # Find and process files with newlines
+      find . -type f -print0 | while IFS= read -r -d '' filename; do
+          # Process each file safely
+          echo "Processing: $filename"
+      done
+      ```
+      
+      Rename files with special characters:
+      
+      ```bash
+      # Using rename (prename) tool to sanitize filenames
+      # Replace spaces with underscores
+      find . -type f -name "* *" -print0 | xargs -0 rename 's/ /_/g'
+      
+      # Replace multiple special characters
+      find . -type f -print0 | xargs -0 rename 's/[^a-zA-Z0-9_.-]/_/g'
+      ```
+      
+      For individual problematic files:
+      
+      ```bash
+      # Rename using inode number
+      ls -i  # Find the inode number
+      find . -inum 12345678 -exec mv {} new_safe_name.txt \;
+      
+      # Using Perl to process every file
+      perl -e 'for (<*>) { $old=$_; s/[^a-zA-Z0-9_.-]/_/g; rename $old, $_ unless $old eq $_; }'
+      ```
+
+  - id: 14
+    question: "How can I redirect the output of multiple commands at once?"
+    brief: |
+      Redirecting the standard output of a single command is easy, but multiple commands require specific techniques.
+
+  - id: 15
+    question: "How can I run a command on all files with the extension .gz?"
+    brief: |
+      There are several approaches for running commands on files with specific extensions.
+
+  - id: 16
+    question: "How can I use a logical AND/OR/NOT in a shell pattern (glob)?"
+    brief: |
+      Globs are simple patterns for matching filenames or strings, with limited logical operations.
+    details: |
+      For OR operations, you can list multiple patterns:
+      ```bash
+      rm -- *.bak *.old
+      ```
+      
+      In Bash, you can use brace expansion for partial glob OR:
+      ```bash
+      rm -- *.{bak,old}
+      ```
+      
+      For more complex patterns, consider using find with -name/-o/-not or extended globs:
+      ```bash
+      # Enable extended glob
+      shopt -s extglob
+      # Match all files except .bak files
+      echo !(*bak)
+      ```
+
+  - id: 17
+    question: "How can I group expressions in an if statement, e.g. if (A AND B) OR C?"
+    brief: |
+      There are multiple ways to group expressions in Bash conditional statements, depending on the shell and the type of test.
+    details: |
+      The portable (POSIX or Bourne) way is to use multiple `test` (or `[`) commands:
+      
+      ```bash
+      # Bourne
+      if commandA && commandB || commandC; then
+          echo "condition satisfied"
+      fi
+      
+      # Bourne: (A AND B) OR C
+      if { test -f file1 && test -f file2; } || test -f file3; then
+          echo "condition satisfied"
+      fi
+      ```
+      
+      For Bash, zsh, and Korn Shell, you can use more powerful comparison commands:
+      
+      ```bash
+      # Using [[ ]] (Bash, zsh, ksh)
+      if [[ -f file1 && -f file2 ]] || [[ -f file3 ]]; then
+          echo "condition satisfied"
+      fi
+      
+      # Using (( )) for arithmetic (Bash, zsh, ksh)
+      if (( a == 5 && b == 6 )) || (( c == 7 )); then
+          echo "condition satisfied" 
+      fi
+      ```
+      
+      Note that `&&` has precedence over `||` inside `[[...]]` and `((...))` constructs, unlike shell control operators where they have equal precedence and left-to-right evaluation.
+
+  - id: 18
+    question: "How can I use numbers with leading zeros in a loop, e.g. 01, 02?"
+    brief: |
+      There are several methods to format numbers with leading zeros in Bash, depending on your shell version and requirements.
+    details: |
+      If you're using Bash 4+ and working with constant values, you can use brace expansion:
+      
+      ```bash
+      # Bash 4+ / zsh
+      for i in {01..10}; do
+          echo "$i"
+      done
+      
+      # Bash 4+ with zero padding (two digits)
+      for i in {01..20..1}; do
+          echo "$i"
+      done
+      ```
+      
+      Using printf for zero-padding:
+      
+      ```bash
+      # Any POSIX shell
+      for i in $(seq 1 10); do
+          printf -v ii "%02d" "$i"  # In Bash, assigns to variable ii
+          echo "$ii"
+      done
+      
+      # Printing directly with printf
+      printf "%02d\n" {1..10}
+      ```
+      
+      Using external utilities:
+      
+      ```bash
+      # Using seq with format option
+      seq -f "%03g" 1 10
+      
+      # BSD systems
+      jot -w %02d 10 1
+      ```
+      
+      If you need to handle variable ranges, you can combine loops with printf:
+      
+      ```bash
+      # Variable start/end values
+      start=3
+      end=12
+      for (( i = start; i <= end; i++ )); do
+          printf -v padded "%02d" "$i"
+          echo "$padded"
+      done
+      ```
+
+  - id: 19
+    question: "How can I split a file into line ranges, e.g. lines 1-10, 11-20, 21-30?"
+    brief: |
+      POSIX specifies the split utility, which can be used for this purpose.
+    details: |
+      Using sed to extract specific line ranges:
+      
+      ```bash
+      # Extract lines 1-10
+      sed -n '1,10p' file.txt > file_1-10.txt
+      
+      # Extract lines 11-20
+      sed -n '11,20p' file.txt > file_11-20.txt
+      ```
+      
+      Using head and tail in combination:
+      
+      ```bash
+      # Extract lines 1-10
+      head -n 10 file.txt > file_1-10.txt
+      
+      # Extract lines 11-20
+      head -n 20 file.txt | tail -n 10 > file_11-20.txt
+      ```
+      
+      Split a file into equal-sized chunks:
+      
+      ```bash
+      # Split into chunks of 10 lines each
+      split -l 10 file.txt chunk_
+      ```
+      
+      Using awk for more control:
+      
+      ```bash
+      # Split into chunks of 10 lines
+      awk 'NR%10==1{file=sprintf("chunk_%d.txt",NR/10+1)}{print > file}' file.txt
+      ```
+
+  - id: 20
+    question: "How can I find and safely handle file names containing newlines, spaces or both?"
+    brief: |
+      Handling filenames with special characters requires careful programming techniques.
+    details: |
+      To handle filenames with spaces, newlines, or other special characters:
+      
+      1. Always quote your variables: `"$filename"` not `$filename`
+      
+      2. Use find with -print0 and process with xargs -0:
+      ```bash
+      find . -type f -name "*.txt" -print0 | xargs -0 grep "pattern"
+      ```
+      
+      3. Use null-delimited input with read:
+      ```bash
+      find . -type f -print0 | while IFS= read -r -d '' file; do
+          echo "Processing: $file"
+      done
+      ```
+      
+      4. Use arrays to safely store multiple filenames:
+      ```bash
+      mapfile -d $'\0' files < <(find . -type f -print0)
+      for file in "${files[@]}"; do
+          echo "Found: $file"
+      done
+      ```
+      
+      5. For rename operations, consider looping in reverse:
+      ```bash
+      files=(*)
+      for ((i=${#files[@]}-1; i>=0; i--)); do
+          mv "${files[i]}" "${files[i]}.bak"
+      done
+      ```
+
+  - id: 21
+    question: "How can I replace a string with another string in a file or stream?"
+    brief: |
+      There are several utilities to replace strings in files or streams, with sed being the most common choice.
+    details: |
+      Using sed for in-place replacements:
+      
+      ```bash
+      # Replace 'foo' with 'bar' in file.txt
+      sed -i 's/foo/bar/g' file.txt
+      
+      # On macOS/BSD, the -i option requires an extension
+      sed -i '' 's/foo/bar/g' file.txt
+      
+      # Replace with a backup
+      sed -i.bak 's/foo/bar/g' file.txt
+      ```
+      
+      For more complex replacements:
+      
+      ```bash
+      # Replace only the first occurrence on each line
+      sed 's/foo/bar/' file.txt
+      
+      # Case-insensitive replacement
+      sed 's/foo/bar/gi' file.txt
+      
+      # Replace only on specific lines (lines 2-4)
+      sed '2,4s/foo/bar/g' file.txt
+      
+      # Replace using a variable (avoid / in the pattern)
+      pattern="sample text"
+      replacement="new text"
+      sed "s|$pattern|$replacement|g" file.txt
+      ```
+      
+      Other tools for string replacement:
+      
+      ```bash
+      # Using awk
+      awk '{gsub(/foo/,"bar")}; {print}' file.txt
+      
+      # Using perl
+      perl -pe 's/foo/bar/g' file.txt
+      
+      # Using grep and a temporary file (for simpler cases)
+      grep -v 'foo' file.txt > temp && mv temp file.txt
+      ```
+
+  - id: 22
+    question: "I want to check if a file exists before I use it."
+    brief: |
+      Bash provides several ways to check for file existence and properties.
+    details: |
+      To check if a file exists:
+      
+      ```bash
+      # Check if a file exists (regular file, directory, socket, etc.)
+      if [ -e "$file" ]; then
+          echo "$file exists"
+      fi
+      
+      # Check if it's a regular file
+      if [ -f "$file" ]; then
+          echo "$file is a regular file"
+      fi
+      
+      # Check if it's a directory
+      if [ -d "$directory" ]; then
+          echo "$directory is a directory"
+      fi
+      
+      # Check for readability, writability, or executability
+      if [ -r "$file" ]; then echo "Readable"; fi
+      if [ -w "$file" ]; then echo "Writable"; fi
+      if [ -x "$file" ]; then echo "Executable"; fi
+      
+      # Check if a file is not empty
+      if [ -s "$file" ]; then
+          echo "$file is not empty"
+      fi
+      ```
+      
+      Using the more powerful `[[` construct in Bash:
+      
+      ```bash
+      # Combining tests
+      if [[ -f "$file" && -r "$file" ]]; then
+          echo "$file is a readable regular file"
+      fi
+      
+      # With an error message if file doesn't exist
+      if [[ ! -f "$file" ]]; then
+          echo "Error: $file doesn't exist or isn't a regular file" >&2
+          exit 1
+      fi
+      ```
+      
+      Multiple files check:
+      
+      ```bash
+      # Check if any of multiple files exist
+      if [[ -f "$file1" || -f "$file2" ]]; then
+          echo "At least one file exists"
+      fi
+      
+      # Check if all files exist
+      if [[ -f "$file1" && -f "$file2" ]]; then
+          echo "Both files exist"
+      fi
+      ```
+
+  - id: 23
+    question: "How can I find out if a variable contains a substring?"
+    brief: |
+      There are several ways to check if a string is a substring of another string in Bash.
+    details: |
+      Using pattern matching in Bash:
+      
+      ```bash
+      string="Hello, world!"
+      substring="world"
+      
+      # Using pattern matching
+      if [[ $string == *"$substring"* ]]; then
+          echo "Substring found"
+      fi
+      
+      # Alternative using the =~ operator with regex (Bash 3.0+)
+      if [[ $string =~ $substring ]]; then
+          echo "Substring found"
+      fi
+      ```
+      
+      Using case statement:
+      
+      ```bash
+      case "$string" in
+          *"$substring"*)
+              echo "Substring found"
+              ;;
+          *)
+              echo "Substring not found"
+              ;;
+      esac
+      ```
+      
+      Using parameter expansion (to check if operation changes string):
+      
+      ```bash
+      if [ "${string/$substring/}" != "$string" ]; then
+          echo "Substring found"
+      fi
+      ```
+      
+      POSIX-compliant method (works in all shells):
+      
+      ```bash
+      if [ -n "$(echo "$string" | grep -F "$substring")" ]; then
+          echo "Substring found"
+      fi
+      ```
+      
+      For case-insensitive matching:
+      
+      ```bash
+      shopt -s nocasematch  # Enable case-insensitive matching
+      if [[ $string == *"$substring"* ]]; then
+          echo "Substring found (case-insensitive)"
+      fi
+      shopt -u nocasematch  # Disable case-insensitive matching
+      ```
+
+  - id: 24
+    question: "I set variables in a loop that's in a pipeline. Why do they disappear after the loop terminates? Or, why can't I pipe data to read?"
+    brief: |
+      Variables set within a subshell are not visible outside the subshell. In Bash, when commands are connected by a pipe, each command in the pipeline runs in a separate subshell.
+    details: |
+      When you run a pipeline like `process | while read var; do ...; done`, the loop runs in a subshell, and any variables modified inside it are not visible after the loop ends.
+      
+      Example of the problem:
+      ```bash
+      # This won't work as expected
+      echo "content" | while read line; do
+          var="$line"
+      done
+      echo "var=$var"  # var will be empty
+      ```
+      
+      Solutions:
+      
+      1. Process substitution (Bash, ksh, zsh):
+      ```bash
+      while read line; do
+          var="$line"
+      done < <(echo "content")
+      echo "var=$var"  # Now var will contain "content"
+      ```
+      
+      2. Use command substitution with read:
+      ```bash
+      var=$(echo "content")
+      echo "var=$var"
+      ```
+      
+      3. In Bash 4.2+, use the lastpipe option to run the last process in a pipeline in the current shell:
+      ```bash
+      shopt -s lastpipe
+      echo "content" | while read line; do
+          var="$line"
+      done
+      echo "var=$var"  # Now var will contain "content"
+      ```
+      
+      4. Use a temporary file (works in any shell):
+      ```bash
+      echo "content" > tempfile
+      while read line; do
+          var="$line"
+      done < tempfile
+      rm tempfile
+      echo "var=$var"
+      ```
+
+  - id: 25
+    question: "How can I reference the last parameter in a Bash script?"
+    brief: |
+      The last positional parameter in a Bash script can be referenced using special variables.
+    details: |
+      To reference the last parameter:
+      
+      ```bash
+      # Using the special $@ array and parameter expansion
+      last_param="${@: -1}"
+      
+      # Using the special $* string and parameter expansion (bash 4.2+)
+      last_param="${*: -1}"
+      
+      # For older versions of Bash
+      eval last_param=\${$#}
+      
+      # Another approach using shift
+      args=("$@")
+      last_param="${args[${#args[@]}-1]}"
+      ```
+      
+      Example script:
+      
+      ```bash
+      #!/bin/bash
+      
+      echo "All parameters: $@"
+      echo "Number of parameters: $#"
+      echo "Last parameter: ${@: -1}"
+      
+      # To access the second-to-last parameter
+      if [[ $# -ge 2 ]]; then
+          echo "Second-to-last parameter: ${@: -2:1}"
+      fi
+      ```
+
+  - id: 26
+    question: "How can I handle command-line arguments to a script? How can I make them optional?"
+    brief: |
+      Bash provides several ways to handle command-line arguments, both positional and named options.
+    details: |
+      Basic argument handling:
+      
+      ```bash
+      #!/bin/bash
+      
+      # Access arguments by position
+      echo "First argument: $1"
+      echo "Second argument: $2"
+      echo "All arguments: $@"
+      echo "Number of arguments: $#"
+      
+      # Loop through all arguments
+      for arg in "$@"; do
+          echo "Argument: $arg"
+      done
+      ```
+      
+      Optional arguments with defaults:
+      
+      ```bash
+      #!/bin/bash
+      
+      # Set defaults
+      name=${1:-"Unknown"}  # Default is "Unknown" if $1 is empty or unset
+      age=${2:-30}          # Default is 30 if $2 is empty or unset
+      
+      echo "Name: $name"
+      echo "Age: $age"
+      ```
+      
+      Using getopts for named options:
+      
+      ```bash
+      #!/bin/bash
+      
+      # Initialize variables with defaults
+      verbose=0
+      output_file=""
+      
+      # Parse options
+      while getopts ":vf:" opt; do
+          case $opt in
+              v)
+                  verbose=1
+                  ;;
+              f)
+                  output_file="$OPTARG"
+                  ;;
+              \?)
+                  echo "Invalid option: -$OPTARG" >&2
+                  exit 1
+                  ;;
+              :)
+                  echo "Option -$OPTARG requires an argument." >&2
+                  exit 1
+                  ;;
+          esac
+      done
+      
+      # Skip past the processed options
+      shift $((OPTIND-1))
+      
+      # Remaining arguments are in $@
+      echo "Verbose mode: $verbose"
+      echo "Output file: $output_file"
+      echo "Remaining arguments: $@"
+      ```
+
+  - id: 27
+    question: "How do I parse command-line arguments in bash?"
+    brief: |
+      Command-line arguments can be parsed in Bash using built-in variables, getopts, or manual parsing methods.
+    details: |
+      See FAQ #26 for detailed information about handling command-line arguments.
+
+  - id: 28
+    question: "How do I determine the location of my script? I want to read some config files from the same place."
+    brief: |
+      There are several methods to find the location of a Bash script, depending on how the script is executed and what information you need.
+    details: |
+      Method 1: Using $0 (unreliable in some cases)
+      ```bash
+      # May work in simple cases
+      script_dir=$(dirname "$0")
+      ```
+      
+      Method 2: Using BASH_SOURCE (Bash-specific, more reliable)
+      ```bash
+      # Better solution for Bash scripts
+      script_dir=$(dirname "${BASH_SOURCE[0]}")
+      # Get absolute path
+      script_dir=$(cd "$script_dir" && pwd)
+      ```
+      
+      Method 3: Using readlink to resolve symlinks (Linux)
+      ```bash
+      # Resolve symlinks on Linux
+      script_path=$(readlink -f "${BASH_SOURCE[0]}")
+      script_dir=$(dirname "$script_path")
+      ```
+      
+      Method 4: For macOS (lacks readlink -f)
+      ```bash
+      # macOS version
+      script_path=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)/$(basename "${BASH_SOURCE[0]}")
+      script_dir=$(dirname "$script_path")
+      ```
+      
+      Once you have the script directory, you can load configuration files relative to it:
+      ```bash
+      config_file="$script_dir/config.ini"
+      if [[ -f "$config_file" ]]; then
+          source "$config_file"
+      else
+          echo "Config file not found" >&2
+          exit 1
+      fi
+      ```
+
+  - id: 29
+    question: "How can I run a command on each file in a directory?"
+    brief: |
+      There are several ways to run a command on each file in a directory, with varying degrees of robustness.
+    details: |
+      Using a for loop with globbing (simplest approach):
+      
+      ```bash
+      # Basic approach
+      for file in /path/to/dir/*; do
+          if [ -f "$file" ]; then  # Process only regular files
+              echo "Processing $file"
+              # command "$file"
+          fi
+      done
+      
+      # For hidden files too
+      shopt -s dotglob
+      for file in /path/to/dir/*; do
+          # process "$file"
+      done
+      shopt -u dotglob  # Turn off dotglob when done
+      ```
+      
+      Using find (more robust, handles spaces and special characters):
+      
+      ```bash
+      # Using find with -exec
+      find /path/to/dir -type f -exec process_script {} \;
+      
+      # Using find with xargs for better performance with many files
+      find /path/to/dir -type f -print0 | xargs -0 process_script
+      
+      # Using find with a while loop for more complex processing
+      find /path/to/dir -type f -print0 | while IFS= read -r -d '' file; do
+          echo "Processing $file"
+          # Complex commands with "$file"
+      done
+      ```
+      
+      Using a for loop with find:
+      
+      ```bash
+      files=($(find /path/to/dir -type f -name "*.txt"))
+      for file in "${files[@]}"; do
+          echo "Processing: $file"
+      done
+      ```
+      
+      Using arrays for better handling of filenames with spaces:
+      
+      ```bash
+      # Using mapfile/readarray (Bash 4+)
+      mapfile -d $'\0' files < <(find /path/to/dir -type f -print0)
+      for file in "${files[@]}"; do
+          echo "Processing: $file"
+      done
+      ```
+
+  - id: 30
+    question: "How can I recursively grep through a directory?"
+    brief: |
+      The grep command can be combined with find or used with its own recursive options to search through directories.
+    details: |
+      Modern grep has built-in recursive search:
+      
+      ```bash
+      # Search recursively for "pattern" in all files
+      grep -r "pattern" /path/to/directory
+      
+      # Search recursively, showing only filenames
+      grep -rl "pattern" /path/to/directory
+      
+      # Search recursively, case-insensitive
+      grep -ri "pattern" /path/to/directory
+      
+      # Search only certain file types
+      grep -r --include="*.txt" "pattern" /path/to/directory
+      
+      # Exclude certain directories
+      grep -r --exclude-dir=node_modules "pattern" /path/to/directory
+      ```
+      
+      Using find with grep for more control:
+      
+      ```bash
+      # Find all .py files and grep for "pattern"
+      find /path/to/directory -name "*.py" -exec grep "pattern" {} \;
+      
+      # More efficient version with xargs
+      find /path/to/directory -name "*.py" -print0 | xargs -0 grep "pattern"
+      
+      # Complex searches (files modified in last 7 days)
+      find /path/to/directory -type f -mtime -7 -exec grep "pattern" {} \;
+      ```
+      
+      For extremely large directories:
+      
+      ```bash
+      # Parallel search (GNU Parallel)
+      find /path/to/directory -type f -print0 | parallel -0 grep -l "pattern" {}
+      
+      # Using ack or ag (The Silver Searcher) for faster searches
+      ack "pattern" /path/to/directory
+      ag "pattern" /path/to/directory
+      ```
+      
+  - id: 31
+    question: "What is the difference between test, [ and [[ ?"
+    brief: |
+      The open square bracket [ command (aka test command) and the [[ ... ]] test construct are used to evaluate expressions.
+    details: |
+      - test and [ are POSIX utilities (generally builtin) for evaluating expressions
+      - [[ ... ]] is a more powerful construct available in Korn shell, Bash, Zsh, and some other shells
+      - [[ ... ]] offers enhanced features:
+        * Pattern matching using == (not just string comparison)
+        * Regular expression matching with =~
+        * More intuitive operators for logical AND/OR (&&/||)
+        * No word splitting or pathname expansion inside [[ ]]
+      
+      Example with test/[:
+      ```bash
+      # POSIX
+      [ "$variable" ] || echo 'variable is unset or empty!' >&2
+      [ -f "$filename" ] || printf 'Not a regular file: %s\n' "$filename" >&2
+      ```
+      
+      Example with [[:
+      ```bash
+      # Bash, ksh, zsh
+      if [[ ! -e $file ]]; then
+          echo "File doesn't exist"
+      fi
+      ```

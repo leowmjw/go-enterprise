@@ -1,0 +1,108 @@
+# Bash Best Practices
+
+introduction: |
+  This document contains a compilation of best practices for writing effective, maintainable, 
+  and robust Bash scripts. Following these guidelines will help you avoid common pitfalls and 
+  write more professional Bash code.
+
+best_practices:
+  - title: "Choose the Right Shell"
+    description: |
+      Before starting a shell script, enumerate the requirements and goal of the script. Then evaluate
+      what the best tool is to accomplish those goals. Bash may be easy to learn and write in, but
+      it isn't always fit for the job.
+      
+      Consider these questions:
+      - Might your script be needed in an environment where Bash is not available by default?
+        - If so, consider sh instead. The POSIX shell features are available in any shell that complies
+          with the POSIX standard.
+      - Does your script need to run on systems that might have an ancient version of Bash?
+        - If so, verify which Bash version you're relying on and consider using more portable approaches.
+      - Could another tool like AWK, Python, or Perl be better suited for the task?
+        - If you just need AWK, don't make a shell script that invokes AWK. Just make an AWK script.
+        - For parsing HTML/XML, Bash is the wrong tool for the job. Consider XPath/XSLT instead.
+
+  - title: "Quoting"
+    description: |
+      Always quote your variables unless you have a specific reason not to. This is especially important
+      when dealing with filenames or parameters that may contain spaces, newlines, or other special characters.
+      
+      Good practices include:
+      - Always double-quote variables: echo "$foo" instead of echo $foo
+      - Consider using printf instead of echo for more predictable output: printf '%s\n' "$foo"
+      - When dealing with globs like *.txt, leave them unquoted if you want expansion, but quote them to
+        prevent expansion: rm *.txt vs. rm "*.txt"
+
+  - title: "Readability"
+    description: |
+      Make your scripts readable and maintainable by following these guidelines:
+      
+      - Use healthy whitespace to give your code breathing space
+      - Indent your code properly and consistently
+      - Use blank lines to separate paragraphs or logic blocks
+      - Avoid backslash-escaping as it's counter-intuitive
+      - Comment your way of thinking before you forget
+      - Be consistent in your naming style, use of capitals, and use of shell features
+      - In coding, unlike in the bedroom, it's good to be simple and predictable
+
+  - title: "Use [[ Instead of [ for Tests"
+    description: |
+      The test command, also known as [, is an application that can produce surprising results.
+      If you're using Bash for scripting, you can use the [[ keyword which presents several advantages:
+      
+      - [[ doesn't word-split its arguments, so quoting is less necessary
+      - [[ treats < and > as string comparison operators, not redirection
+      - [[ supports pattern matching with =~
+      - [[ has better error handling
+      
+      Examples:
+      ```bash
+      # With [
+      [ "$var" = '' ] && echo True  # Quotes needed
+      [ "$var" \< a ] && echo True  # Backslash needed
+      
+      # With [[
+      [[ $var = '' ]] && echo True  # Quotes optional
+      [[ $var < a ]] && echo True   # Backslash not needed
+      ```
+
+  - title: "Use (( for Arithmetic Operations"
+    description: |
+      For arithmetic comparisons and operations, use (( )) instead of [ or [[.
+      
+      Examples:
+      ```bash
+      # Integer comparison
+      if (( x > y )); then
+          echo "x is greater than y"
+      fi
+      
+      # Arithmetic operations
+      (( x = y + z ))
+      (( y++ ))
+      ```
+
+  - title: "Avoid Common Pitfalls"
+    description: |
+      Avoid these common mistakes in Bash scripting:
+      
+      - Don't use `for f in $(ls *.mp3)` to loop through files - it breaks on spaces and special characters
+      - Don't use unquoted variables in commands like `cp $file $target`
+      - Don't use [ $foo = "bar" ] without quotes - it fails if $foo is empty
+      - Don't use [[ $foo > 7 ]] for numeric comparison - use -gt or (( ))
+      - Don't pipe to while loops if you need variables to persist after the loop
+      - Don't redirect output back to the input file in the same command
+
+  - title: "Debugging Techniques"
+    description: |
+      When debugging Bash scripts:
+      
+      1. Diagnose the problem
+      2. Minimize the codebase to isolate the issue
+      3. Activate Bash's debug mode:
+         - Use set -x to trace execution
+         - Use set -v to print lines as they're read
+      4. Step through your code
+      5. Consider using the Bash debugger (bashdb)
+      6. Reread the manual
+      7. Check the FAQ and Pitfalls documentation

@@ -1,0 +1,100 @@
+# Bash Intro Guide Content
+
+introduction: |
+  This guide aims to aid people interested in learning to work with BASH.  It aspires to teach good practice techniques for using BASH, and writing simple scripts.
+
+definition: |
+  BASH is an acronym for Bourne Again Shell. It is based on the Bourne shell and is mostly compatible with its features.
+
+contents:
+  - Commands and Arguments: BashGuide/CommandsAndArguments
+  - Special Characters: BashGuide/SpecialCharacters
+  - Parameters: BashGuide/Parameters
+  - Patterns: BashGuide/Patterns
+  - Tests and Conditionals: BashGuide/TestsAndConditionals
+  - Arrays: BashGuide/Arrays
+  - Input and Output: BashGuide/InputAndOutput
+  - Compound Commands: BashGuide/CompoundCommands
+  - Sourcing: BashGuide/Sourcing
+  - Job Control: BashGuide/JobControl
+  - Practices: BashGuide/Practices
+
+detailed_sections:
+  commands_and_arguments:
+    overview: |
+      BASH reads commands from its input (which is usually either a terminal or a file). Each line of input that it reads is treated as a command — an instruction to be carried out.
+      
+      Bash divides each line into words that are demarcated by whitespace characters (spaces and tabs). The first word of the line is the name of the command to be executed. All the remaining words become arguments to that command (options, filenames, etc.).
+    
+    strings: |
+      Words in Bash can be either simple (unquoted) words or strings. Strings are enclosed with quotes to protect special characters from being interpreted by the shell.
+      
+      There are three types of quotes:
+      - Double quotes (") - Allow variable and command substitution, but protect spaces and most special characters
+      - Single quotes (') - Protect all special characters, no substitutions allowed
+      - Backslash (\) - Escape/protect a single character
+    
+    command_types:
+      - aliases: |
+          An alias is a way to create a shorthand for a command, command line, or phrase. 
+          Example: alias ll='ls -l'
+      
+      - functions: |
+          Functions are similar to small scripts. They can accept arguments and create local variables.
+          Example: 
+          myfunc() {
+            echo "Hello $1"
+          }
+      
+      - builtins: |
+          Builtin commands are part of the Bash executable itself. Examples include cd, echo, and read.
+      
+      - keywords: |
+          Keywords are special reserved words used by Bash for specific operations.
+          Examples include if, while, for, and case.
+      
+      - executables: |
+          Executables are external programs that Bash can call by name if they are in your PATH.
+    
+    scripts: |
+      A script is a text file that contains a sequence of commands to be executed by Bash.
+      The file needs execution permission (chmod +x scriptname).
+      Scripts typically start with a shebang line: #!/bin/bash
+      
+      Usage format: scriptname [option] [argument] ...
+
+  arrays:
+    overview: |
+      Bash has multiple parameter types. Variables can either contain a single value (scalars) or multiple values (arrays).
+      Strings are without a doubt the most used parameter type but are also the most misused. A string holds just ONE element.
+    
+    array_types:
+      - indexed_arrays: |
+          Indexed arrays are arrays in the traditional sense. They are arrays with numeric indices, starting at 0.
+          Example: array=(value1 value2 value3)
+      
+      - associative_arrays: |
+          Associative arrays use string indices instead of numeric ones. These are similar to hash tables.
+          Only available in Bash 4.0 and newer.
+          Example: declare -A array; array[key]=value
+    
+    common_operations: |
+      - Creating arrays:
+        array=(element1 element2 element3)
+        declare -a array  # explicitly declare indexed array
+        declare -A array  # explicitly declare associative array
+      
+      - Accessing array elements:
+        ${array[0]}       # first element of indexed array
+        ${array[index]}   # element at position index
+        ${array[key]}     # element with key in associative array
+        ${array[@]}       # all elements, preserving integrity of each element
+        ${array[*]}       # all elements as a single string (generally less useful)
+      
+      - Array length/size:
+        ${#array[@]}     # number of elements in the array
+      
+      - Iterating through arrays:
+        for element in "${array[@]}"; do
+          echo "$element"
+        done

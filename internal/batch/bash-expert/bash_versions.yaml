@@ -1,0 +1,270 @@
+# Bash Versions and Features
+
+description: |
+  This document details the features introduced in different versions of Bash, 
+  when they were released, and where applicable, which shell they were inspired by.
+  Understanding version-specific features is crucial for writing portable scripts
+  and leveraging advanced functionality.
+
+upcoming_features:
+  bash_5.3:
+    features:
+      - feature: "${ CMDS;}"
+        inspired_by: "ksh93"
+        description: "Command substitution with curly braces"
+      
+      - feature: "${|CMDS;}"
+        inspired_by: "mksh"
+        description: "Process substitution variant within parameter expansion"
+      
+      - feature: "GLOBSORT (variable)"
+        inspired_by: "zsh's o/O glob qualifiers"
+        description: "Controls sorting of pathname expansion results"
+      
+      - feature: "local BASH_REMATCH"
+        description: "Allows scoping of BASH_REMATCH in local function contexts"
+      
+      - feature: "compgen -V"
+        inspired_by: "native"
+        description: "New option for completion generation"
+      
+      - feature: "read -E"
+        description: "New option for the read builtin"
+      
+      - feature: "array_expand_once (shopt)"
+        description: "Shell option controlling array expansion behavior"
+      
+      - feature: "printf %#Q %#q (${var@Q} quoting)"
+        inspired_by: "zsh's q, qq, qqq, qqqq, q+, q- parameter expansion flags"
+        description: "Enhanced quoting options for printf"
+      
+      - feature: "printf %l.*s %lc (character aware %s %c)"
+        inspired_by: "zsh's default for %s, ksh93's %Ls/%Lc"
+        description: "Character-aware string formatting"
+
+released_versions:
+  bash_5.2:
+    release_date: "2022-09-19"
+    features:
+      - feature: "pipefail, lastpipe"
+        description: "Improved pipeline behavior"
+      
+      - feature: "EPOCHREALTIME, EPOCHSECONDS"
+        description: "Built-in variables for current time in seconds/with decimal"
+  
+  bash_5.1:
+    release_date: "2020-12-07"
+    features:
+      - feature: "SRANDOM (variable)"
+        description: "More random than RANDOM"
+        
+      - feature: "unset -v nameref"
+        description: "Extended unset behavior for nameref variables"
+        
+      - feature: "BASH_LOADABLES_PATH (variable)"
+        description: "Path for dynamically loadable builtins"
+
+  bash_5.0:
+    release_date: "2019-01-07"
+    features:
+      - feature: "@a namesref"
+        description: "Name reference transformation"
+        
+      - feature: "BASH_ARGV0 (variable)"
+        description: "Value of $0 on entry to script"
+        
+      - feature: "wait -f"
+        description: "Wait for completion of all background jobs"
+        
+      - feature: "history -d offset count"
+        description: "Delete multiple history entries"
+
+  bash_4.4:
+    release_date: "2016-09-15"
+    features:
+      - feature: "mapfile/readarray -d"
+        inspired_by: "native"
+        description: "Specify delimiter for mapfile/readarray"
+        
+      - feature: "--help for builtins"
+        description: "Help for builtin commands"
+        
+      - feature: "READLINE_LINE (built-in variable) for readine command bindings"
+        description: "Provides access to the readline line buffer"
+
+  bash_4.3:
+    release_date: "2014-02-26"
+    features:
+      - feature: "$BASH_COMPAT variable"
+        description: "Set compatibility level with previous versions"
+        
+      - feature: "include special var=$'' where $ is just a character"
+        description: "Extended string variable syntax"
+
+  bash_4.2:
+    release_date: "2011-02-14"
+    features:
+      - feature: "** glob"
+        inspired_by: "zsh (2004)"
+        description: "Recursive directory matching"
+        
+      - feature: "@A parameter transformation"
+        description: "Array expansion transformation"
+        
+      - feature: "coproc NAME { cmds; }"
+        description: "Named coprocesses"
+
+  bash_4.1:
+    release_date: "2010-01-02"
+    features:
+      - feature: "mapfile/readarray"
+        description: "Read input into array variable"
+        
+      - feature: "default arg for ${@:X}"
+        description: "Default argument handling in array slicing"
+
+  bash_4.0:
+    release_date: "2009-02-20"
+    features:
+      - feature: "|| in glob"
+        inspired_by: "zsh (1990)"
+        description: "Alternation in pattern matching"
+        
+      - feature: ";& and ;;& fall-throughs for case"
+        inspired_by: "ksh93 (1993)"
+        description: "Case statement fall-through behavior"
+        
+      - feature: "associative arrays"
+        inspired_by: "ksh93 (1993)"
+        description: "Key-value arrays with string indices"
+        
+      - feature: "coproc"
+        inspired_by: "zsh, ksh93"
+        description: "Coprocess facility for interprocess communication"
+
+  bash_3.2:
+    release_date: "2006-10-11"
+    features:
+      - feature: "+=, ${!prefix*}"
+        description: "Append operator and prefix pattern expansion"
+        
+      - feature: "COMP_WORDBREAKS"
+        description: "Controls word breaking for programmable completion"
+
+  bash_3.1:
+    release_date: "2005-12-08"
+    features:
+      - feature: "FUNCNAME"
+        description: "Array containing the names of all shell functions in execution"
+        
+      - feature: "LC_* support"
+        description: "Locale support"
+
+  bash_3.0:
+    release_date: "2004-07-27"
+    features:
+      - feature: "${!array[@]}"
+        description: "Expand to the list of array indices or keys"
+        
+      - feature: "set -o pipefail"
+        description: "Return value is failure if any command in pipe fails"
+        
+      - feature: "PIPESTATUS"
+        description: "Array variable containing exit status values of commands in most recently executed foreground pipeline"
+
+  bash_2.05b:
+    release_date: "2002-07-17"
+    features:
+      - feature: "for ((;;))"
+        inspired_by: "ksh93"
+        description: "C-style for loop"
+        
+      - feature: "<<<" 
+        inspired_by: "zsh (1991)"
+        description: "Here-string operator"
+        
+      - feature: "$(<FILE)"
+        inspired_by: "ksh88 (1988)"
+        description: "Command substitution for file reading"
+
+  bash_2.04:
+    release_date: "2001-03-21"
+    features:
+      - feature: "[[ ]] is POSIX compliant"
+        description: "Extended test construct conforming to POSIX"
+
+  bash_2.0:
+    release_date: "1996-12-31"
+    features:
+      - feature: "HISTCONTROL"
+        description: "Controls history behavior"
+        
+      - feature: "{,} expansion"
+        inspired_by: "csh (1978)"
+        description: "Brace expansion for generating strings"
+        
+      - feature: "[[]]"
+        inspired_by: "ksh88 (1988)"
+        description: "Extended test command"
+        
+      - feature: "(())"
+        inspired_by: "ksh88 (1988)"
+        description: "Arithmetic evaluation construct"
+
+compatibility_notes:
+  bash_3_to_4:
+    description: |
+      When upgrading from Bash 3.x to Bash 4.x, be aware of the following changes:
+      
+      1. Associative arrays are introduced in Bash 4.0 and require explicit declaration
+      2. The ** glob pattern for recursive directory matching requires shopt -s globstar
+      3. The mapfile/readarray commands provide more efficient ways to read files into arrays
+      4. Case statement fall-through behavior with ;& and ;;& allows for more flexible pattern matching
+
+  bash_4_to_5:
+    description: |
+      When upgrading from Bash 4.x to Bash 5.x, consider these changes:
+      
+      1. The EPOCHSECONDS and EPOCHREALTIME variables provide direct access to system time
+      2. The wait -f option allows waiting for completion of all background jobs
+      3. SRANDOM provides a more random value than the traditional RANDOM variable
+      4. The BASH_ARGV0 variable preserves the original value of $0
+
+migration_considerations: |
+  When writing Bash scripts intended to run on multiple systems, consider:
+  
+  1. Check the Bash version with ${BASH_VERSION} if using version-specific features
+  2. Provide fallbacks for features not available in older versions
+  3. Consider using the BASH_COMPAT variable to ensure consistent behavior
+  4. Document version requirements in script headers
+  5. For maximum portability, stick to POSIX features when possible
+  6. Test scripts on the oldest Bash version you need to support
+
+example_version_check: |
+  #!/bin/bash
+  # Check if Bash version supports associative arrays (4.0+)
+  if ((BASH_VERSINFO[0] >= 4)); then
+      declare -A assoc_array
+      assoc_array[key]="value"
+      echo "${assoc_array[key]}"
+  else
+      echo "Your Bash version ${BASH_VERSION} doesn't support associative arrays"
+      # Implement alternative approach for older versions
+  fi
+
+resources:
+  - name: "Bash Changelog (NEWS)"
+    url: "http://tiswww.case.edu/php/chet/bash/NEWS"
+    description: "Official changelog for Bash releases"
+  
+  - name: "Bash Complete Change History (CHANGES)"
+    url: "http://tiswww.case.edu/php/chet/bash/CHANGES"
+    description: "Complete history of changes in Bash since version 2.0"
+  
+  - name: "Bash Compatibility Notes (COMPAT)"
+    url: "http://tiswww.case.edu/php/chet/bash/COMPAT"
+    description: "Compatibility issues between Bash 3 and previous versions"
+  
+  - name: "Bash-Hackers Wiki - Bash Changes"
+    url: "https://web.archive.org/web/20230401195427/https://wiki.bash-hackers.org/scripting/bashchanges"
+    description: "Detailed list of features added in different Bash versions"

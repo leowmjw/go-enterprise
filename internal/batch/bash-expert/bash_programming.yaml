@@ -1,0 +1,454 @@
+# Bash Programming Guide Content
+
+basic_concepts: |
+  This document is intended for programmers who are trying to get things done in bash.  It assumes a familiarity with basic programming concepts (variables, loops, functions, arrays), and with the fundamental bash syntax.
+
+script: |
+  A script on a Unix system must use Unix newline characters, not Microsoft's carriage return + newline pairs.  It should also have execute permission (chmod +x) and read permission (chmod +r), as the interpreter must literally open and read the content of the script.
+
+shebang: |
+  Every script must start with a shebang line (#!/something).  This tells the kernel what interpreter to execute, to read your script.  This is not optional.
+
+commands_and_quoting: |
+  A script consists of the shebang, followed by zero or more commands.  Commands are typically one line apiece, ending with a newline, but some commands may span multiple lines.
+
+variables:
+  - String variables: The default variable type in Bash. No type declaration needed.
+  - Environment variables: Inherited from parent process, accessible to child processes when exported.
+  - Array variables: Indexed arrays with integer indices. Available in Bash, Zsh, and Ksh88+.
+  - Associative array variables: Arrays with string indices. Available in Bash 4.0+, Ksh93+, and Zsh.
+
+arrays:
+  indexed_arrays:
+    description: |
+      One-dimensional integer-indexed arrays are implemented by Bash, Zsh, and most KornShell varieties. Arrays are not specified by POSIX and not available in legacy or minimalist shells such as BourneShell and Dash.
+      
+      Remember that strings are just one element. If you put multiple items in a single string, these multiple items must be delimited from each other. When handling filenames or other data that might contain special characters, arrays are much safer than strings.
+    syntax: |
+      # Initialize an array
+      a=(word1 word2 "$word3" ...)
+      
+      # Initialize array with filenames
+      a=(*.png *.jpg)
+      
+      # Set one element
+      a[i]=word
+      
+      # Access one element
+      echo "${a[i]}"
+      
+      # Access all elements (separate words)
+      echo "${a[@]}"
+      
+      # Access all elements (single word)
+      echo "${a[*]}"
+      
+      # Number of elements
+      echo "${#a[@]}"
+      
+      # Indices used
+      echo "${!a[@]}"
+    examples: |
+      # Typical usage pattern
+      host=([0]="localhost" [1]="example.com" [42]="example.net")
+      for idx in "${!host[@]}"; do
+          printf 'Host number %d is %s\n' "$idx" "${host[idx]}"
+      done
+      
+      # Arrays are sparse, elements may be added/removed out of sequence
+      unset -v 'arr[2]'  # Remove element at index 2
+      
+      # AVOID common mistakes with files
+      # DON'T DO THIS:
+      files=$(ls ~/*.jpg); cp $files /backups/
+      
+      # DO THIS INSTEAD:
+      files=(~/*.jpg); cp "${files[@]}" /backups/
+      
+  associative_arrays:
+    description: |
+      Associative arrays (dictionaries or hash maps) are available in Bash 4.0+ and allow for string-based keys instead of integers.
+      An associative array is an unordered collection of key-value pairs.
+    syntax: |
+      # Declare associative array (required before use)
+      declare -A assoc_array
+      
+      # Initialize with key-value pairs
+      assoc_array=([key1]=value1 [key2]=value2)
+      
+      # Set a single key
+      assoc_array[key3]=value3
+      
+      # Access a value by key
+      echo "${assoc_array[key1]}"
+      
+      # Get all keys
+      echo "${!assoc_array[@]}"
+      
+      # Get all values
+      echo "${assoc_array[@]}"
+      
+      # Number of elements
+      echo "${#assoc_array[@]}"
+    examples: |
+      # User information lookup
+      declare -A user_info
+      user_info=([name]="John Doe" [email]="john@example.com" [role]="admin")
+      
+      echo "User: ${user_info[name]}"
+      echo "Email: ${user_info[email]}"
+      
+      # Iterate through all key-value pairs
+      for key in "${!user_info[@]}"; do
+          echo "$key: ${user_info[$key]}"
+      done
+      
+  loading_arrays: |
+    # Loading an array from a file, line by line (Bash 4+)
+    mapfile -t lines < file
+    
+    # Alternative (Bash 3.1+, Ksh93, mksh)
+    unset -v lines
+    while IFS= read -r; do
+        lines+=("$REPLY")
+    done < file
+    
+    # Handling NUL-separated lists
+    while IFS= read -r -d ''; do
+        files+=("$REPLY")
+    done < <(find . -type f -name "*.txt" -print0)
+
+tests_and_conditionals:
+  exit_status:
+    description: |
+      Every command results in an exit code whenever it terminates. This exit code is used to evaluate whether everything went OK. The exit code is an integer between 0 and 255 (inclusive).
+      
+      Convention dictates that 0 indicates success, and any other number indicates failure of some sort. The specific number is application-specific.
+    examples: |
+      # Check the exit status of the last command
+      if grep -q "pattern" file.txt; then
+          echo "Pattern found"
+      else
+          echo "Pattern not found"
+      fi
+      
+      # Manual check using $?
+      grep -q "pattern" file.txt
+      status=$?
+      echo "Exit status: $status"
+  
+  control_operators:
+    description: |
+      Control operators allow you to create compound commands by connecting simple commands together.
+      
+      - && (AND): The second command is executed only if the first command succeeds (returns exit status 0)
+      - || (OR): The second command is executed only if the first command fails (returns non-zero exit status)
+    examples: |
+      # Execute second command only if first succeeds
+      mkdir /tmp/new_dir && cd /tmp/new_dir
+      
+      # Execute second command only if first fails
+      ping -c 1 server.example.com || echo "Server is down"
+      
+      # Combining operators
+      test -d "$dir" && echo "Directory exists" || mkdir -p "$dir"
+  
+  test_commands:
+    description: |
+      Bash provides several ways to test conditions:
+      
+      1. test command or [ ... ]
+      2. [[ ... ]] Bash keyword (preferred in Bash scripts)
+      3. (( ... )) for arithmetic tests
+    
+    common_tests: |
+      # File tests
+      -e FILE  True if FILE exists
+      -f FILE  True if FILE is a regular file
+      -d FILE  True if FILE is a directory
+      -r FILE  True if FILE is readable
+      -w FILE  True if FILE is writable
+      -x FILE  True if FILE is executable
+      -s FILE  True if FILE exists and has a size greater than zero
+      
+      # String tests
+      -z STRING  True if STRING is empty
+      -n STRING  True if STRING is not empty
+      STRING1 = STRING2  True if strings are equal
+      STRING1 != STRING2  True if strings are not equal
+      
+      # Numeric tests (with [ or [[ )
+      -eq  Equal
+      -ne  Not equal
+      -lt  Less than
+      -le  Less than or equal
+      -gt  Greater than
+      -ge  Greater than or equal
+    
+    examples: |
+      # Using test command
+      test -f "/etc/passwd" && echo "File exists"
+      
+      # Using [ ... ]
+      [ -d "/tmp" ] && echo "Directory exists"
+      
+      # Using [[ ... ]] (preferred in Bash)
+      [[ -n "$variable" ]] && echo "Variable is not empty"
+      
+      # String pattern matching with [[
+      [[ "$name" = M* ]] && echo "$name starts with M"
+      
+      # Regex matching with [[ (Bash 3.0+)
+      [[ "$email" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]] && echo "Valid email"
+      
+      # Arithmetic comparison with ((
+      (( x > y )) && echo "x is greater than y"
+
+conditional_blocks:
+  if_statements:
+    description: |
+      The if statement evaluates a command/test and executes code blocks based on the exit status.
+    syntax: |
+      if COMMAND; then
+          # Code to execute if COMMAND returns exit status 0 (success)
+      elif ANOTHER_COMMAND; then
+          # Code to execute if COMMAND failed but ANOTHER_COMMAND succeeded
+      else
+          # Code to execute if all tests failed
+      fi
+    examples: |
+      # Simple if statement
+      if [[ -f "$filename" ]]; then
+          echo "File exists"
+      else
+          echo "File does not exist"
+      fi
+      
+      # Multiple conditions
+      if [[ "$count" -eq 0 ]]; then
+          echo "Count is zero"
+      elif [[ "$count" -lt 10 ]]; then
+          echo "Count is less than 10"
+      else
+          echo "Count is 10 or greater"
+      fi
+      
+      # Using exit status of commands
+      if grep -q "error" logfile.txt; then
+          echo "Errors found in log"
+      fi
+  
+  case_statements:
+    description: |
+      The case statement allows for multiple pattern matching against a single value.
+      It's more readable than multiple if/elif statements when checking a single variable.
+    syntax: |
+      case WORD in
+          PATTERN1)
+              # Code for pattern 1
+              ;;
+          PATTERN2)
+              # Code for pattern 2
+              ;;
+          *)
+              # Default case
+              ;;
+      esac
+    examples: |
+      # Simple case statement
+      case "$answer" in
+          yes|YES|y|Y)
+              echo "You agreed"
+              ;;
+          no|NO|n|N)
+              echo "You disagreed"
+              ;;
+          *)
+              echo "Invalid response"
+              ;;
+      esac
+      
+      # Case with pattern matching
+      case "$filename" in
+          *.jpg|*.jpeg)
+              echo "JPEG image"
+              ;;
+          *.png)
+              echo "PNG image"
+              ;;
+          *.txt)
+              echo "Text file"
+              ;;
+          *)
+              echo "Unknown file type"
+              ;;
+      esac
+
+loops:
+  description: |
+    Bash provides several loop constructs for repeating operations:
+    
+    - for: Iterate over a list of values
+    - while: Repeat as long as a condition is true
+    - until: Repeat as long as a condition is false
+  
+  for_loops:
+    description: |
+      The for loop is used to iterate over a list of values, executing commands for each value.
+      
+      Two forms:
+      1. Traditional shell form iterates over words
+      2. C-style form performs arithmetic iteration
+    syntax: |
+      # Traditional form
+      for VARIABLE in LIST; do
+          # Commands
+      done
+      
+      # C-style form (Bash 3.0+)
+      for ((INIT; CONDITION; INCREMENT)); do
+          # Commands
+      done
+    examples: |
+      # Loop over values
+      for name in John Sarah Michael; do
+          echo "Hello, $name"
+      done
+      
+      # Loop over array elements
+      names=("John" "Sarah" "Michael")
+      for name in "${names[@]}"; do
+          echo "Hello, $name"
+      done
+      
+      # Loop over command output (generally AVOID this pattern for files)
+      for line in $(cat file.txt); do
+          echo "Line: $line"
+      done
+      
+      # Loop with range
+      for i in {1..10}; do
+          echo "Number: $i"
+      done
+      
+      # C-style loop
+      for ((i=0; i<10; i++)); do
+          echo "Count: $i"
+      done
+  
+  while_loops:
+    description: |
+      The while loop continues execution as long as a condition is true (exit status 0).
+    syntax: |
+      while CONDITION; do
+          # Commands
+      done
+    examples: |
+      # Simple counter
+      count=1
+      while [[ $count -le 5 ]]; do
+          echo "Count: $count"
+          ((count++))
+      done
+      
+      # Read file line by line (preferred method)
+      while IFS= read -r line; do
+          echo "Line: $line"
+      done < file.txt
+      
+      # Wait for condition
+      while ! ping -c 1 -W 1 server.example.com; do
+          echo "Waiting for server to come online..."
+          sleep 5
+      done
+  
+  until_loops:
+    description: |
+      The until loop continues execution as long as a condition is false (non-zero exit status).
+      It's the opposite of the while loop.
+    syntax: |
+      until CONDITION; do
+          # Commands
+      done
+    examples: |
+      # Simple counter
+      count=5
+      until [[ $count -le 0 ]]; do
+          echo "Count: $count"
+          ((count--))
+      done
+      
+      # Wait until file exists
+      until [[ -f "$filename" ]]; do
+          echo "Waiting for $filename to appear..."
+          sleep 2
+      done
+  
+  loop_control:
+    description: |
+      Bash provides commands to control loop execution:
+      
+      - break: Exit from the loop
+      - continue: Skip to the next iteration
+      - break N: Exit from the Nth level of nested loops
+      - continue N: Skip to the next iteration of the Nth level of nested loops
+    examples: |
+      # Using break
+      for ((i=1; i<=10; i++)); do
+          if [[ $i -eq 5 ]]; then
+              echo "Breaking at $i"
+              break
+          fi
+          echo "Iteration: $i"
+      done
+      
+      # Using continue
+      for ((i=1; i<=5; i++)); do
+          if [[ $i -eq 3 ]]; then
+              echo "Skipping iteration $i"
+              continue
+          fi
+          echo "Iteration: $i"
+      done
+
+arithmetic: |
+  Bash can do integer arithmetic, but not floating/fixed point.  As of bash 2.05b, all integers use C's intmax_t variable type (typically 64 bits, but it depends on the platform).
+  
+  There are several ways to perform arithmetic operations in Bash:
+  
+  ```bash
+  # Using the let command
+  let result=5+3
+  
+  # Using $((...)) syntax
+  result=$((5 + 3))
+  
+  # Using arithmetic comparison in tests
+  if (( x > y )); then
+      echo "x is greater than y"
+  fi
+  
+  # Increment/decrement
+  ((count++))
+  ((total+=value))
+  ```
+
+functions: |
+  Bash functions are really more like procedures, or user-implemented shell commands. They cannot return values to the caller. All they can actually return is an exit status (0 to 255).
+  
+  ```bash
+  # Function definition
+  my_function() {
+      local result="Operation completed"  # Local variable, not visible outside function
+      echo "$result"                      # Output can be captured
+      return 0                            # Return status (0=success)
+  }
+  
+  # Function call and output capture
+  output=$(my_function)
+  status=$?
+  
+  echo "Function returned: $output with status $status"
+  ```
+  
+  Functions can access parameters using $1, $2, etc., just like scripts can. The special variable $@ contains all arguments as separate strings.

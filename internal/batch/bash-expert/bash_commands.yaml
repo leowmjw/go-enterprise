@@ -1,0 +1,437 @@
+# Bash Commands Reference
+
+introduction: |
+  This document provides a reference for important Bash commands and builtins.
+  It covers usage, options, and examples for each command to help developers write more effective scripts.
+
+shell_builtins:
+  - name: source
+    syntax: "source filename [arguments]"
+    aliases: ". filename [arguments]"
+    description: |
+      Execute commands from a file in the current shell. This is useful for loading functions, 
+      variables, and configuration from external files into the current shell environment.
+    examples: |
+      # Load environment variables
+      source ~/.bashrc
+      
+      # Load variables with arguments
+      source config.sh arg1 arg2
+      
+      # Using the dot notation (equivalent to source)
+      . ./script_with_functions.sh
+
+  - name: read
+    syntax: "read [-ers] [-a array] [-d delim] [-i text] [-n nchars] [-N nchars] [-p prompt] [-t timeout] [-u fd] [name...]"
+    description: |
+      Read a line from standard input (or file descriptor) and split it into fields.
+      Fields are assigned to the provided variable names, with any remaining fields assigned to the last variable.
+    options: |
+      -a array  Assign words read to sequential indices of array
+      -d delim  Continue reading until delimiter delim is encountered (default: newline)
+      -e        Use Readline to obtain the line in interactive shells
+      -i text   Use text as the initial text for Readline
+      -n nchars Return after reading nchars characters
+      -N nchars Return only after reading exactly nchars characters
+      -p prompt Display prompt without trailing newline before reading
+      -r        Raw mode (do not interpret backslashes)
+      -s        Silent mode (do not echo input)
+      -t timeout Timeout after timeout seconds
+      -u fd     Read from file descriptor fd instead of stdin
+    examples: |
+      # Read a line into a variable
+      read -p "Enter your name: " name
+      echo "Hello, $name!"
+      
+      # Read with a timeout
+      if read -t 5 -p "Enter password (5 sec timeout): " passwd; then
+          echo "Password received"
+      else
+          echo "Timed out"
+      fi
+      
+      # Read into an array
+      read -a arr -p "Enter values separated by space: "
+      echo "First value: ${arr[0]}"
+      echo "All values: ${arr[@]}"
+      
+      # Read without displaying input (for passwords)
+      read -s -p "Password: " passwd
+      echo # Add a newline after the user enters the password
+
+  - name: declare
+    syntax: "declare [-aAfFgilnrtux] [-p] [name[=value] ...]"
+    aliases: "typeset"
+    description: |
+      Declare variables and/or give them attributes. If no names are provided, display attributes and values of all variables.
+    options: |
+      -a        Variable is an indexed array
+      -A        Variable is an associative array (Bash 4.0+)
+      -f        Display or restrict to function names and definitions
+      -i        Variable is treated as an integer
+      -l        Convert value to lowercase (Bash 4.0+)
+      -n        Create a name reference (alias) to the variable named by value (Bash 4.3+)
+      -r        Make variables read-only
+      -t        Give functions the trace attribute
+      -u        Convert value to uppercase (Bash 4.0+)
+      -x        Export variables to child processes (mark for export)
+      -p        Display attributes and values of each name
+    examples: |
+      # Declare an integer
+      declare -i num=10
+      num+=5  # Arithmetic operation, num becomes 15
+      
+      # Declare an indexed array
+      declare -a fruits=("apple" "banana" "cherry")
+      echo "${fruits[1]}"  # Output: banana
+      
+      # Declare an associative array (Bash 4.0+)
+      declare -A user
+      user=([name]="John" [age]=30 [city]="New York")
+      echo "${user[name]} is ${user[age]} years old"
+      
+      # Make a variable read-only
+      declare -r PI=3.14159
+      # PI=3.14  # This would generate an error
+      
+      # Export a variable
+      declare -x PATH="$HOME/bin:$PATH"
+
+  - name: export
+    syntax: "export [-fn] [name[=value] ...] or export -p"
+    description: |
+      Set export attribute for shell variables, making them available to child processes.
+      Without arguments, the current environment (exported variables) is displayed.
+    options: |
+      -f        Apply the export attribute to functions
+      -n        Remove the export attribute from variables
+      -p        Display a list of all exported variables and functions
+    examples: |
+      # Export a variable
+      export PATH="$HOME/bin:$PATH"
+      
+      # Export multiple variables
+      export USER="john" HOME="/home/john"
+      
+      # Export a function
+      my_func() { echo "Hello"; }
+      export -f my_func
+      
+      # Remove export attribute
+      export -n MY_VAR
+
+  - name: set
+    syntax: "set [--abefhkmnptuvxBCEHPT] [-o option] [arg ...]"
+    description: |
+      Set or unset shell options and positional parameters.
+      Without options, displays all shell variables and functions.
+    common_options: |
+      -e        Exit immediately if a command exits with a non-zero status
+      -u        Treat unset variables as an error when substituting
+      -x        Print commands and their arguments as they are executed
+      -o option Set the option by name:
+                pipefail: pipeline fails if any command in it fails
+                posix: change behavior to match POSIX standard
+                nounset: same as -u
+                errexit: same as -e
+                xtrace: same as -x
+    examples: |
+      # Enable exit on error
+      set -e
+      
+      # Treat unset variables as errors
+      set -u
+      
+      # Print commands as they execute (debugging)
+      set -x
+      
+      # Combine multiple options
+      set -eux
+      
+      # Enable pipefail option
+      set -o pipefail
+      
+      # Set positional parameters
+      set -- arg1 arg2 arg3
+      echo "$1 $2 $3"  # Output: arg1 arg2 arg3
+
+  - name: unset
+    syntax: "unset [-fv] [-n] [name ...]"
+    description: |
+      Remove shell variables or functions. For each name, remove the corresponding variable or function.
+    options: |
+      -f        Treat each name as a function
+      -v        Treat each name as a variable
+      -n        Treat each name as a name reference (Bash 4.3+)
+    examples: |
+      # Unset a variable
+      name="John"
+      unset name
+      
+      # Unset a function
+      greeting() { echo "Hello"; }
+      unset -f greeting
+      
+      # Unset an array element
+      fruits=("apple" "banana" "cherry")
+      unset 'fruits[1]'  # Removes banana, array becomes ("apple" "cherry")
+
+  - name: local
+    syntax: "local [option] name[=value] ..."
+    description: |
+      Create a local variable with the specified name and optional value.
+      Can only be used within a function, making the variable visible only within that function.
+    options: |
+      -a        Create a local indexed array
+      -A        Create a local associative array (Bash 4.0+)
+      -i        Create a local integer variable
+      -r        Create a local read-only variable
+    examples: |
+      # Basic local variable
+      function example() {
+          local var="local value"
+          echo "Inside function: $var"
+      }
+      var="global value"
+      example
+      echo "Outside function: $var"  # Still shows "global value"
+      
+      # Local array
+      function array_example() {
+          local -a arr=("a" "b" "c")
+          echo "${arr[1]}"  # Output: b
+      }
+
+command_grouping:
+  - name: subshell
+    syntax: "( list )"
+    description: |
+      Execute commands in a subshell environment. Variables assigned in a subshell are not visible
+      outside the parentheses. The return status is the exit status of the last command executed.
+    examples: |
+      # Variables in subshells are isolated
+      value=original
+      ( value=changed; echo "Inside: $value" )
+      echo "Outside: $value"  # Still shows "original"
+      
+      # Grouping commands that output to the same place
+      ( echo "Start"; date; echo "End" ) > logfile
+      
+      # Get output from multiple commands
+      output=$(( echo "Line 1"; echo "Line 2" ))
+
+  - name: command_group
+    syntax: "{ list; }"
+    description: |
+      Execute commands in the current shell context. Unlike subshells, variables assigned in the
+      group are visible after the group completes. Note the required space after { and semicolon before }.
+    examples: |
+      # Variables in command groups are visible outside
+      value=original
+      { value=changed; echo "Inside: $value"; }
+      echo "Outside: $value"  # Shows "changed"
+      
+      # Redirect output from multiple commands
+      { echo "Start"; date; echo "End"; } > logfile
+      
+      # Using command groups with conditionals
+      if somecommand; then { echo "Success"; log_success; } else { echo "Failure"; log_failure; } fi
+
+job_control:
+  - name: jobs
+    syntax: "jobs [-lnprs] [jobspec ...]"
+    description: |
+      Lists the active jobs. Without the jobspec option, all jobs are listed.
+    options: |
+      -l        List process IDs in addition to the job information
+      -n        Display only jobs that have changed status since last notification
+      -p        List only the process IDs of the jobs
+      -r        Restrict output to running jobs
+      -s        Restrict output to stopped jobs
+    examples: |
+      # List all jobs
+      jobs
+      
+      # List running jobs
+      jobs -r
+      
+      # List job process IDs
+      jobs -p
+
+  - name: bg
+    syntax: "bg [jobspec ...]"
+    description: |
+      Resume each suspended job in the background. If no jobspec is given, the current job is used.
+    examples: |
+      # Resume the most recently suspended job in background
+      bg
+      
+      # Resume specific job in background
+      bg %2
+
+  - name: fg
+    syntax: "fg [jobspec]"
+    description: |
+      Bring a job to the foreground. If no jobspec is given, the current job is used.
+    examples: |
+      # Bring the most recently suspended job to foreground
+      fg
+      
+      # Bring a specific job to foreground
+      fg %3
+
+special_builtins:
+  - name: trap
+    syntax: "trap [-lp] [[arg] sigspec ...]"
+    description: |
+      Set up a command to be executed when a signal is received. Useful for cleanup operations
+      or for handling signals in a custom way.
+    options: |
+      -l        List signal names and their corresponding numbers
+      -p        Display the trap commands associated with each sigspec
+    signals: |
+      EXIT      Executed when the shell exits
+      ERR       Executed when a command returns a non-zero exit status
+      DEBUG     Executed before each command
+      RETURN    Executed when a shell function or sourced script returns
+      Signal names like INT (Ctrl+C), TERM, HUP, etc.
+    examples: |
+      # Clean up temporary files when script exits (for any reason)
+      trap 'rm -f /tmp/tempfile_$$*' EXIT
+      
+      # Handle Ctrl+C (SIGINT)
+      trap 'echo "Ctrl+C pressed. Exiting..."; exit 1' INT
+      
+      # Execute a command when an error occurs
+      trap 'echo "Error occurred at line $LINENO"' ERR
+      
+      # Display current traps
+      trap -p
+
+  - name: eval
+    syntax: "eval [arg ...]"
+    description: |
+      Concatenate arguments into a single command and execute it. This allows constructing
+      and executing commands dynamically. Use with caution as it can pose security risks.
+    examples: |
+      # Simple evaluation
+      command="echo Hello, World"
+      eval "$command"
+      
+      # Dynamic variable names
+      name="user"
+      value="John"
+      eval "$name=$value"
+      echo "$user"  # Output: John
+      
+      # Constructing a command with options
+      options="-la"
+      eval "ls $options"
+
+command_substitution:
+  - name: command_substitution
+    syntax: "$(command) or `command`"
+    description: |
+      Execute command and substitute its output. The $(command) form is preferred as it allows nesting.
+    examples: |
+      # Store command output in a variable
+      today=$(date +%Y-%m-%d)
+      echo "Today is $today"
+      
+      # Use command output directly in another command
+      echo "Files in directory: $(ls | wc -l)"
+      
+      # Nested command substitution
+      echo "Home directory size: $(du -sh $(echo $HOME) | cut -f1)"
+
+parameter_expansion:
+  - name: basic_expansion
+    syntax: "${parameter}"
+    description: |
+      Expand parameter to its value. Braces are optional in simple cases but required for more complex expansions.
+    examples: |
+      # Simple expansion
+      name="John"
+      echo "$name"
+      echo "${name}"
+      
+      # Concatenation with text (braces required)
+      echo "${name}s"  # Output: Johns
+
+  - name: default_value
+    syntax: "${parameter:-word} or ${parameter:=word} or ${parameter:+word} or ${parameter:?word}"
+    description: |
+      Use default values or display errors for unset or empty parameters:
+      :-word  Use default if parameter is unset or empty
+      :=word  Assign default if parameter is unset or empty
+      :+word  Use alternate value if parameter is set and not empty
+      :?word  Display error if parameter is unset or empty
+    examples: |
+      # Use default value
+      echo "${name:-Unknown}"  # If $name is unset/empty, outputs "Unknown"
+      
+      # Assign default value
+      echo "${count:=0}"  # If $count is unset/empty, sets it to 0
+      
+      # Use alternate value
+      echo "${file:+File exists: $file}"  # Outputs nothing if $file is unset/empty
+      
+      # Error on unset/empty
+      echo "${required:?Must be set}"  # Exits with error if $required is unset/empty
+
+  - name: substring
+    syntax: "${parameter:offset:length}"
+    description: |
+      Extract a substring from parameter. If length is omitted, extract to the end of the string.
+      Negative offset counts from the end of the string (Bash 4.2+, requires space after colon).
+    examples: |
+      # Extract from position 1, length 3
+      string="abcdef"
+      echo "${string:1:3}"  # Output: bcd
+      
+      # Extract from position 2 to end
+      echo "${string:2}"    # Output: cdef
+      
+      # Extract last 2 characters (Bash 4.2+)
+      echo "${string: -2}"  # Output: ef
+
+  - name: pattern_matching
+    syntax: "${parameter#pattern} or ${parameter##pattern} or ${parameter%pattern} or ${parameter%%pattern}"
+    description: |
+      Remove pattern from the beginning or end of parameter:
+      #pattern   Remove shortest match from beginning
+      ##pattern  Remove longest match from beginning
+      %pattern   Remove shortest match from end
+      %%pattern  Remove longest match from end
+    examples: |
+      # Remove prefix
+      path="/usr/local/bin/bash"
+      echo "${path#/usr/}"      # Output: local/bin/bash
+      echo "${path##*/}"        # Output: bash
+      
+      # Remove suffix
+      filename="document.tar.gz"
+      echo "${filename%.gz}"    # Output: document.tar
+      echo "${filename%%.*}"    # Output: document
+
+  - name: search_replace
+    syntax: "${parameter/pattern/replacement} or ${parameter//pattern/replacement}"
+    description: |
+      Replace pattern with replacement:
+      /pattern/replacement    Replace first match
+      //pattern/replacement   Replace all matches
+      /#pattern/replacement   Replace match at beginning
+      /%pattern/replacement   Replace match at end
+    examples: |
+      # Replace first occurrence
+      text="The cat sat on the mat"
+      echo "${text/cat/dog}"    # Output: The dog sat on the mat
+      
+      # Replace all occurrences
+      echo "${text//the/a}"     # Output: The cat sat on a mat
+      
+      # Replace at beginning
+      echo "${text/#The/A}"     # Output: A cat sat on the mat
+      
+      # Replace at end
+      echo "${text/%mat/carpet}"  # Output: The cat sat on the carpet
