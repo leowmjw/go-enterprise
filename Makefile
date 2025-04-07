@@ -32,3 +32,5 @@ stop:
 health:
 	@curl -X GET ${FGA_API_URL}/healthz	
 
+start-operations:
+	@cd cmd/operations && pkgx overmind s

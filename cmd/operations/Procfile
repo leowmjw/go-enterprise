@@ -1,0 +1,7 @@
+# temporal: temporal server start-dev --http-port 9090 --ui-port 3001 --metrics-port 9091 --log-level info
+# nomad: pkgx nomad agent -dev
+api: pwd && pkgx air -c air.toml s
+ns1: cd ns1 && pwd && pkgx air -c ns1-air.toml s
+# Add MCP here ..
+# Add wrangler here ..
+

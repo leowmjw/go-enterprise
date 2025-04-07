@@ -32,3 +32,6 @@ go.work
 # Ignore binaries
 ./batch
 
+# Ignore tmp folders
+tmp
+
